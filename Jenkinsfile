@@ -62,8 +62,33 @@ pipeline {
     stage('SonarQube') {
       steps {
         // The server comes from SONAR_HOST_URL, set on the Jenkins controller.
+        // qualitygate.wait fails the stage when the gate fails, so nothing below
+        // it ships.
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-          sh 'pnpm dlx @sonar/scan'
+          sh 'pnpm dlx @sonar/scan -Dsonar.qualitygate.wait=true'
+        }
+      }
+    }
+
+    stage('Deploy') {
+      // Git deployments are off (vercel.json): production moves only here,
+      // after every stage above passed, and only from main.
+      when { expression { env.GIT_BRANCH == 'origin/main' } }
+      steps {
+        withCredentials([
+          string(credentialsId: 'vercel-token', variable: 'VERCEL_TOKEN'),
+          string(credentialsId: 'vercel-org-id', variable: 'VERCEL_ORG_ID'),
+          string(credentialsId: 'vercel-project-id', variable: 'VERCEL_PROJECT_ID')
+        ]) {
+          // The production build takes NEXT_PUBLIC_API_URL from the Vercel
+          // project, pulled below. The pipeline's own value points the tests at
+          // an API and would otherwise win, since the environment beats .env files.
+          sh '''
+            unset NEXT_PUBLIC_API_URL
+            pnpm dlx vercel@62.0.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+            pnpm dlx vercel@62.0.0 build --prod --token="$VERCEL_TOKEN"
+            pnpm dlx vercel@62.0.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          '''
         }
       }
     }

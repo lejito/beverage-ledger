@@ -100,6 +100,7 @@ cp .env.example .env          # admin, SONAR_TOKEN, API y usuario de prueba
 docker compose up -d --build  # Jenkins en :8080, SonarQube en :9000
 ```
 
+- **Despliega Jenkins, no Vercel.** `vercel.json` apaga los despliegues por push (`git.deploymentEnabled: false`); el stage `Deploy` usa la CLI (`vercel pull`, `build --prod`, `deploy --prebuilt --prod`) solo en `main` y solo si pasaron todos los stages anteriores, umbral de calidad de SonarQube incluido. El `NEXT_PUBLIC_API_URL` de producción sale del proyecto de Vercel, no del de Jenkins, que solo sirve a los tests.
 - **El stage de análisis va contra el SonarQube local, no contra SonarCloud**: el servidor sale de `SONAR_HOST_URL`, que pone Jenkins, y el `Jenkinsfile` no nombra ninguno. GitHub Actions sigue analizando en SonarCloud con `sonar-project.properties`, cuyo `sonar.organization` el SonarQube local ignora.
 - **El job lee el `Jenkinsfile` de GitHub**, no del disco: un cambio al pipeline no corre hasta que se empuja. Consulta el repo cada 5 minutos, porque un Jenkins en localhost no recibe webhooks. El repo es privado: Jenkins clona con la credencial `github`, un token de solo lectura que va en `GITHUB_TOKEN` del `.env`.
 - **`NEXT_PUBLIC_API_URL` es una credencial y no una variable global** porque la instancia la comparte el job de la API. Nunca `localhost`: dentro del contenedor, `localhost` es el propio Jenkins. Por defecto apunta a Render, como GitHub Actions.
@@ -257,7 +258,7 @@ Los overlays (dropdown, select, modal, popover) se construyen sobre **Radix UI**
 
 **Se trabaja directo sobre `main`. No se abren ramas.** `main` es la rama por defecto de `origin` y la única que hay (antes se llamaba `master`). Las fases anteriores usaron ramas de feature y ya están mergeadas; a partir de aquí se commitea y se pushea a `main` sin intermediarios, salvo que el usuario pida otra cosa.
 
-Eso mueve el listón, no lo baja: **`main` es la rama que va a producción**, así que un commit roto ahí es producción rota. Antes de commitear, `pnpm typecheck`, `pnpm lint` y `pnpm i18n:check` en verde; si el cambio toca rutas, layouts o configuración, también `pnpm build`. Y el trabajo se parte en commits que funcionen por separado, porque ya no hay una rama donde dejar un estado a medias.
+Eso mueve el listón, no lo baja: **`main` es la rama que va a producción**, a través del pipeline de Jenkins, así que un commit roto ahí es un pipeline roto y nada se despliega hasta arreglarlo. Antes de commitear, `pnpm typecheck`, `pnpm lint` y `pnpm i18n:check` en verde; si el cambio toca rutas, layouts o configuración, también `pnpm build`. Y el trabajo se parte en commits que funcionen por separado, porque ya no hay una rama donde dejar un estado a medias.
 
 **Nunca añadir a Claude como coautor.** Sin `Co-Authored-By`, sin firmas, sin "Generated with". Los commits son del autor del repositorio.
 
