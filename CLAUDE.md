@@ -15,7 +15,7 @@ El nombre no es casual: la fuente de verdad del inventario es un **ledger inmuta
 | | Repositorio | Stack |
 |---|---|---|
 | Frontend | `beverage-ledger` (este) → `C:\VisualProjects\beverage-ledger` | Next.js 15 (App Router), TypeScript, Tailwind |
-| Backend | [`beverage-ledger-api`](https://github.com/T-cordoba/beverage-ledger-api) → `C:\VisualProjects\beverage-ledger-api` | NestJS, Prisma, Supabase Postgres |
+| Backend | [`beverage-ledger-api`](https://github.com/lejito/beverage-ledger-api) → `C:\VisualProjects\beverage-ledger-api` | NestJS, Prisma, Supabase Postgres |
 
 ---
 
@@ -78,12 +78,31 @@ pnpm test                       # Vitest, las pruebas de caminos de tests/
 pnpm test:coverage              # las mismas + coverage/lcov.info para SonarCloud
 pnpm api:types                  # regenera src/lib/api/schema.d.ts desde la API viva
 pnpm i18n:check                 # es.json y en.json tienen las mismas claves
-pnpm lint                       # ESLint
+pnpm lint                       # ESLint (pnpm lint:fix para autocorregir)
 pnpm typecheck                  # tsc --noEmit
-pnpm format                     # Prettier --write
+pnpm format                     # Prettier --write (pnpm format:check solo verifica)
+
+pnpm test tests/rf-23-front-use-debounced-value.test.ts   # un solo archivo
+pnpm test -t "<nombre del caso>"                          # filtrar por nombre de test
 ```
 
+Las pruebas viven en `tests/`, no junto al código, con el nombre `rf-<NN>-<front|conexion>-<unidad>.test.ts(x)`: `NN` es el requisito funcional que cubren. Corren en jsdom, en serie (`fileParallelism: false`), y `vitest.config.mts` carga el `.env` con `loadEnv`, así que no hace falta exportar variables a mano.
+
 Cuatro pruebas de `tests/` (`rf-01-front-handle-submit`, `rf-03-front-accept-invite-form`, `rf-09-front-submit`, `rf-29-front-change-status`) hacen login real y golpean la API: necesitan `TEST_USER_EMAIL` y `TEST_USER_PASSWORD` en el `.env` y un `NEXT_PUBLIC_API_URL` que responda. `rf-09` además **escribe**: reasigna el `origin` de un producto y crea uno nuevo que deja desactivado. En CI corren igual, contra Render, por decisión del usuario.
+
+### CI con Jenkins
+
+Además del workflow de GitHub Actions, el pipeline está en el `Jenkinsfile` de la raíz. **El servidor no vive en este repo**: es una instancia compartida con la API, definida en la carpeta `jenkins/beverage-ledger/`, hermana de los clones (sin versionar). Allí están la imagen con Node 22 y corepack, los plugins, un **SonarQube local** con su Postgres (http://localhost:9000) y toda la configuración como código (`casc.yaml`): usuario admin, credenciales (`next-public-api-url`, `test-user`, `sonar-token`) y los dos jobs, `beverage-ledger` y `beverage-ledger-api`, ambos sobre `main`. No hay asistente de instalación; lo que se cambie en la UI se pierde al reiniciar.
+
+```bash
+cd ../jenkins/beverage-ledger
+cp .env.example .env          # admin, SONAR_TOKEN, API y usuario de prueba
+docker compose up -d --build  # Jenkins en :8080, SonarQube en :9000
+```
+
+- **El stage de análisis va contra el SonarQube local, no contra SonarCloud**: el servidor sale de `SONAR_HOST_URL`, que pone Jenkins, y el `Jenkinsfile` no nombra ninguno. GitHub Actions sigue analizando en SonarCloud con `sonar-project.properties`, cuyo `sonar.organization` el SonarQube local ignora.
+- **El job lee el `Jenkinsfile` de GitHub**, no del disco: un cambio al pipeline no corre hasta que se empuja. Consulta el repo cada 5 minutos, porque un Jenkins en localhost no recibe webhooks. El repo es privado: Jenkins clona con la credencial `github`, un token de solo lectura que va en `GITHUB_TOKEN` del `.env`.
+- **`NEXT_PUBLIC_API_URL` es una credencial y no una variable global** porque la instancia la comparte el job de la API. Nunca `localhost`: dentro del contenedor, `localhost` es el propio Jenkins. Por defecto apunta a Render, como GitHub Actions.
 
 `api:types` lee el origen de **`NEXT_PUBLIC_API_URL`** (`scripts/generate-api-types.mjs`), así que regenera contra lo que tengas configurado —API local o la de Render— sin editar el `package.json`. Antes estaba quemado a `localhost:3001`, lo que dejaba el contrato irregenerable cuando la API local no se podía levantar. El script usa la API de Node de `openapi-typescript` en vez del CLI, y el `pnpm format` posterior es lo que hace la salida idéntica a lo versionado.
 
@@ -192,7 +211,8 @@ components/ui/       Primitivos globales. Sin lógica de negocio, sin llamadas a
                      StatTile, SegmentedControl, Spinner, EmptyState, Notifications.
 components/layout/   Estructura: AppShell, Topbar (producto) · MarketingNav, Footer (landing).
 features/<dominio>/  Funcionalidad: componentes, hooks y lógica de un dominio concreto
-                     (auth, catalog, movements, stock, reports, dashboard, admin).
+                     (auth, catalog, movements, stock, reports, dashboard, admin,
+                     invitations, locations, profile).
 app/**/page.tsx      Vistas. Componen features y layout. Delgadas.
 ```
 Regla de dirección de dependencias: `app/` → `features/` → `components/ui/`. Nunca al revés. Un componente de `ui/` que importe algo de `features/` está mal ubicado.
@@ -235,9 +255,9 @@ Los overlays (dropdown, select, modal, popover) se construyen sobre **Radix UI**
 
 ### Git
 
-**Se trabaja directo sobre `master`. No se abren ramas.** No existe `main`: `master` es la rama por defecto de `origin` y la única que hay. Las fases anteriores usaron ramas de feature y ya están mergeadas; a partir de aquí se commitea y se pushea a `master` sin intermediarios, salvo que el usuario pida otra cosa.
+**Se trabaja directo sobre `main`. No se abren ramas.** `main` es la rama por defecto de `origin` y la única que hay (antes se llamaba `master`). Las fases anteriores usaron ramas de feature y ya están mergeadas; a partir de aquí se commitea y se pushea a `main` sin intermediarios, salvo que el usuario pida otra cosa.
 
-Eso mueve el listón, no lo baja: **Vercel despliega `master`**, así que un commit roto ahí es producción rota. Antes de commitear, `pnpm typecheck`, `pnpm lint` y `pnpm i18n:check` en verde; si el cambio toca rutas, layouts o configuración, también `pnpm build`. Y el trabajo se parte en commits que funcionen por separado, porque ya no hay una rama donde dejar un estado a medias.
+Eso mueve el listón, no lo baja: **`main` es la rama que va a producción**, así que un commit roto ahí es producción rota. Antes de commitear, `pnpm typecheck`, `pnpm lint` y `pnpm i18n:check` en verde; si el cambio toca rutas, layouts o configuración, también `pnpm build`. Y el trabajo se parte en commits que funcionen por separado, porque ya no hay una rama donde dejar un estado a medias.
 
 **Nunca añadir a Claude como coautor.** Sin `Co-Authored-By`, sin firmas, sin "Generated with". Los commits son del autor del repositorio.
 
@@ -278,10 +298,10 @@ Definido en Prisma en el repo de la API. Resumen para entender lo que consume el
 **Catálogo**
 - `categories`, `brands` — antes eran strings sueltos dentro de la tabla de licores.
 - `products` — el licor. `case_size` define cuántas unidades base tiene una caja.
-- `locations` — dónde vive el stock. Una fila default; deja modelado el multi-bodega sin construir la UI.
+- `locations` — dónde vive el stock. Una es la default; con CRUD, selector y filtro en la UI (ver §7, "Bodegas").
 
 **Inventario**
-- `movements` — `type`: `INBOUND | OUTBOUND | ADJUSTMENT`. `status`: `DRAFT | CONFIRMED | CANCELLED`. Con `occurred_at`, `created_by_user_id` y código legible (`MOV-2026-0001`).
+- `movements` — `type`: `INBOUND | OUTBOUND | ADJUSTMENT | TRANSFER`. `status`: `DRAFT | CONFIRMED | CANCELLED`. Con `occurred_at`, `created_by_user_id` y código legible (`MOV-2026-0001`).
 - `movement_items` — las líneas. **Fuente de verdad del inventario.** Guardan `quantity_base` (normalizado con `case_size`) y un snapshot del nombre del producto, para que un PDF viejo siga siendo fiel aunque el producto se renombre después.
 - `stock_levels` — proyección materializada de las existencias, actualizada **en la misma transacción** que confirma o anula un movimiento. Se lee en O(1) y siempre es reconstruible desde el ledger.
 - `audit_logs` — quién hizo qué, cuándo y desde dónde.
@@ -383,10 +403,11 @@ src/
     ui/               primitivos (ver §5)
     layout/           AppShell, Topbar · MarketingNav, Footer
   features/           auth · catalog · movements · stock · reports · dashboard ·
-                      admin · profile · locations
+                      admin · profile · locations · invitations
   lib/
     api/              schema.d.ts generado, cliente, sesión, errores
     query/            configuración del QueryClient
+    forms/            useFormValidation + reglas de validación
     utils/            cn(), toDateKey/parseDateKey, nombres de mes y día
     hooks/
   config/             api, branding, navigation
