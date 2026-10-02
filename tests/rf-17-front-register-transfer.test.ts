@@ -29,8 +29,7 @@ describe('Registrar traspaso - Front', () => {
       id: 'movement-1',
       type: 'TRANSFER',
       status: 'DRAFT',
-    } as any);
-
+    } as never);
 
     const { result } = renderHook(() => useMovementDraft('TRANSFER'));
 

@@ -52,12 +52,12 @@ describe('Registrar entrada - Front', () => {
       id: 'movement-1',
       type: 'INBOUND',
       status: 'DRAFT',
-    } as any);
+    } as never);
 
     mockedApiPost.mockResolvedValue({
       error: { message: 'Movimiento no encontrado' },
       response: { ok: false, status: 404 },
-    } as any);
+    } as never);
 
     const { result } = renderHook(() => useMovementDraft('INBOUND'));
 
@@ -78,10 +78,9 @@ describe('Registrar entrada - Front', () => {
     // Assert
     expect(movement.status).toBe('DRAFT');
     expect(response.error).toBeDefined();
-    expect(mockedApiPost).toHaveBeenCalledWith(
-      '/api/v1/movements/{id}/confirm',
-      { params: { path: { id: 'id-inexistente' } } },
-    );
+    expect(mockedApiPost).toHaveBeenCalledWith('/api/v1/movements/{id}/confirm', {
+      params: { path: { id: 'id-inexistente' } },
+    });
   });
 
   it('Camino 2 - la entrada se registra correctamente', async () => {
@@ -90,13 +89,13 @@ describe('Registrar entrada - Front', () => {
       id: 'movement-2',
       type: 'INBOUND',
       status: 'DRAFT',
-    } as any);
+    } as never);
 
     mockedApiPost.mockResolvedValue({
       data: { id: 'movement-2', status: 'CONFIRMED' },
       error: undefined,
       response: { ok: true, status: 200 },
-    } as any);
+    } as never);
 
     const { result } = renderHook(() => useMovementDraft('INBOUND'));
 
@@ -117,9 +116,7 @@ describe('Registrar entrada - Front', () => {
     expect(result.current.isEmpty).toBe(false);
     expect(result.current.productCount).toBe(1);
     expect(result.current.totalBottles).toBe(1);
-    expect(items).toEqual([
-      { productId: product.id, quantity: 1, unit: 'BOTTLE' },
-    ]);
+    expect(items).toEqual([{ productId: product.id, quantity: 1, unit: 'BOTTLE' }]);
     expect(movement.type).toBe('INBOUND');
     expect(movement.status).toBe('DRAFT');
     expect(confirmed.id).toBe(movement.id);

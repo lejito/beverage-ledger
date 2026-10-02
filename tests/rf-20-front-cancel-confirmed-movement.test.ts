@@ -37,7 +37,7 @@ describe('Anular un movimiento confirmado - Front', () => {
     mockedApiPost.mockResolvedValue({
       error: { message: 'Movimiento no encontrado' },
       response: { ok: false, status: 404 },
-    } as any);
+    } as never);
 
     // Act
     const response = await api.POST('/api/v1/movements/{id}/cancel', {
@@ -49,13 +49,10 @@ describe('Anular un movimiento confirmado - Front', () => {
 
     // Assert
     expect(response.error).toBeDefined();
-    expect(mockedApiPost).toHaveBeenCalledWith(
-      '/api/v1/movements/{id}/cancel',
-      {
-        params: { path: { id: 'id-inexistente' } },
-        body: { reason: 'Error en el registro' },
-      },
-    );
+    expect(mockedApiPost).toHaveBeenCalledWith('/api/v1/movements/{id}/cancel', {
+      params: { path: { id: 'id-inexistente' } },
+      body: { reason: 'Error en el registro' },
+    });
   });
 
   it('Camino 2 - la cancelación es exitosa y el movimiento queda cancelado', async () => {
@@ -64,19 +61,19 @@ describe('Anular un movimiento confirmado - Front', () => {
       id: 'movement-1',
       type: 'OUTBOUND',
       status: 'DRAFT',
-    } as any);
+    } as never);
 
     mockedApiPost
       .mockResolvedValueOnce({
         data: { id: 'movement-1', status: 'CONFIRMED' },
         error: undefined,
         response: { ok: true, status: 200 },
-      } as any)
+      } as never)
       .mockResolvedValueOnce({
         data: { id: 'movement-1', status: 'CANCELLED' },
         error: undefined,
         response: { ok: true, status: 200 },
-      } as any);
+      } as never);
 
     // Act
     const draft = await openDraft({
