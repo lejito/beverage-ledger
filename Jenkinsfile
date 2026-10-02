@@ -18,25 +18,19 @@ pipeline {
   }
 
   stages {
-    stage('Install') {
+    stage('Instalación de dependencias') {
       steps { sh 'pnpm install --frozen-lockfile' }
     }
 
-    stage('Static checks') {
-      parallel {
-        stage('Lint') {
-          steps { sh 'pnpm lint' }
-        }
-        stage('Typecheck') {
-          steps { sh 'pnpm typecheck' }
-        }
-        stage('Format') {
-          steps { sh 'pnpm format:check' }
-        }
+    stage('Revisión estática') {
+      steps {
+        sh 'pnpm lint'
+        sh 'pnpm typecheck'
+        sh 'pnpm format:check'
       }
     }
 
-    stage('Test') {
+    stage('Pruebas (unitarias, regresión)') {
       steps {
         // Four suites sign in against the real API, by the user's decision.
         withCredentials([usernamePassword(
@@ -55,11 +49,11 @@ pipeline {
       }
     }
 
-    stage('Build') {
+    stage('Compilación') {
       steps { sh 'pnpm build' }
     }
 
-    stage('SonarQube') {
+    stage('Calidad (SonarQube)') {
       steps {
         // The server comes from SONAR_HOST_URL, set on the Jenkins controller.
         // qualitygate.wait fails the stage when the gate fails, so nothing below
@@ -70,7 +64,7 @@ pipeline {
       }
     }
 
-    stage('Deploy') {
+    stage('Despliegue') {
       // Git deployments are off (vercel.json): production moves only here,
       // after every stage above passed, and only from main.
       when { expression { env.GIT_BRANCH == 'origin/main' } }
