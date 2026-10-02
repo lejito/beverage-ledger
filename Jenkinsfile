@@ -32,6 +32,10 @@ pipeline {
 
     stage('Pruebas (unitarias, regresión)') {
       steps {
+        // Render's free plan sleeps after 15 idle minutes and takes about 50s to
+        // wake, longer than the 5s a test waits. Wake it first, or the suites
+        // that hit it time out on a cold start rather than on a real failure.
+        sh 'curl --fail --silent --show-error --output /dev/null --retry 12 --retry-delay 10 --retry-all-errors --max-time 30 "$NEXT_PUBLIC_API_URL/api/v1/health"'
         // Four suites sign in against the real API, by the user's decision.
         withCredentials([usernamePassword(
           credentialsId: 'test-user',
