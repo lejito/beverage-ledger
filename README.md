@@ -1,141 +1,148 @@
 <div align="center">
   <img src="public/bl-logo.png" alt="Beverage Ledger Logo" width="120" height="120">
-  
-  # Beverage Ledger
-  **Professional Casino Liquor Inventory Management System**
-  
-  [![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black)](https://nextjs.org/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38B2AC)](https://tailwindcss.com/)
-  [![License](https://img.shields.io/badge/License-Proprietary-red)](#-copyright-notice)
-  
-  ---
-  
-  ### **[LIVE DEMO](https://beverage-ledger.vercel.app)** 
-  **Try the application: [beverage-ledger.vercel.app](https://beverage-ledger.vercel.app)**
+
+# Beverage Ledger
+
+**Gestión de inventario de licores para hostelería**
+
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38B2AC)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-Proprietary-red)](#-copyright-notice)
+
+**Aplicación en producción: [beverage-ledger-lac.vercel.app](https://beverage-ledger-lac.vercel.app)**
+
 </div>
 
 ---
 
 ## 🚨 **LEGAL DISCLAIMER**
 
-> **⚠️ IMPORTANT NOTICE**: This software is an **INDEPENDENT PROJECT** and is **NOT affiliated, associated, authorized, endorsed by, or in any way officially connected** with any casino, resort, gaming company, or hospitality business. 
-> 
+> **⚠️ IMPORTANT NOTICE**: This software is an **INDEPENDENT PROJECT** and is **NOT affiliated, associated, authorized, endorsed by, or in any way officially connected** with any casino, resort, gaming company, or hospitality business.
+>
 > Any trade names, logos, or brand names mentioned are used for **EDUCATIONAL AND DEMONSTRATIVE PURPOSES ONLY** and are the property of their respective owners.
-> 
+>
 > This is a **GENERIC INVENTORY MANAGEMENT SYSTEM** that can be adapted for various hospitality environments.
 
 ---
 
-## 🎰 About the Project
+## Qué es
 
-The **Beverage Ledger** is a sophisticated, casino-themed liquor inventory management system designed for premium casino operations. This application provides comprehensive tracking, management, and reporting capabilities for beverage operations in high-end casino environments.
+Frontend de **Beverage Ledger**: registra movimientos de inventario —entradas, salidas, traspasos entre bodegas y ajustes—, muestra existencias por bodega con su kardex, reportes de consumo, historial auditable y PDF de cada movimiento.
 
-### ✨ Key Features
+> Este repositorio es solo el frontend. Toda la lógica de negocio vive en la API, [`beverage-ledger-api`](https://github.com/lejito/beverage-ledger-api); el servidor de integración continua está en la carpeta `jenkins/beverage-ledger/`, hermana de los dos clones.
 
-- **🍾 Real-time Inventory Tracking** - Monitor liquor bottles and cases with precision
-- **📊 Advanced Analytics** - Comprehensive statistics with customizable time ranges
-- **📋 Movement History** - Complete audit trail of all inventory transactions
-- **🧾 PDF Invoice Generation** - Professional invoice creation with casino branding
-- **🎨 Casino-themed UI** - Elegant gold and black design matching casino aesthetics
-- **📱 Responsive Design** - Optimized for desktop, tablet, and mobile devices
-- **🔍 Smart Search & Filtering** - Quick access to specific liquors and movements
-- **⚡ Performance Optimized** - Built with Next.js 15 and modern React patterns
+Lo que hace la aplicación:
 
-### 🎯 Target Environment
-
-This system is purpose-built for:
-- **Premium casino operations** and beverage management
-- High-volume liquor inventory management
-- Professional casino hospitality environments
-- Real-time tracking of premium spirits and wines
+- **Movimientos** con borrador, confirmación y anulación, y el PDF de cada uno.
+- **Existencias** por bodega, alertas de stock bajo y kardex por producto.
+- **Catálogo** de productos, categorías y marcas, con búsqueda y filtros en el servidor.
+- **Reportes** de consumo y actividad por periodo.
+- **Administración**: usuarios, invitaciones, bodegas, organización y log de auditoría.
+- **Permisos por rol**: la interfaz oculta lo que el rol no puede hacer, y la API lo impide de todas formas.
+- **Español e inglés**, con la zona horaria de la organización.
 
 ---
 
-## 🛠️ Technology Stack
+## Stack
 
-### Frontend
-- **Next.js 15.5.2** - React framework with App Router
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first styling with custom casino theme
-- **React Hooks** - Modern state management with useReducer patterns
+- **Next.js 15** (App Router) con **React 19** y **TypeScript**.
+- **TanStack Query** para el estado del servidor.
+- **openapi-fetch** con tipos generados desde el OpenAPI de la API (`pnpm api:types`).
+- **next-intl** para los textos y los formatos.
+- **Tailwind CSS** y **Radix UI** para la interfaz.
+- **Vitest** y **Testing Library** para las pruebas.
 
-### Backend & Database
-- **Neon Database** - Serverless PostgreSQL
-- **Server Actions** - Type-safe server functions
-- **PDF Generation** - Custom invoice creation
+La sesión usa un access token en memoria y una cookie `httpOnly` de refresh emitida por la API; el token nunca se guarda en `localStorage`.
 
-### Architecture
-- **Component-based Design** - 13 modular, reusable components
-- **Clean Code Principles** - Maintainable and scalable codebase
-- **Type Safety** - Complete TypeScript implementation
-- **Responsive Design** - Mobile-first approach
+---
 
-## 📁 Project Structure
+## Puesta en marcha
 
-```
-beverage-ledger/
-├── public/
-│   ├── bl-logo.png          # Casino branding logo
-│   └── favicon.ico
-├── src/
-│   ├── app/
-│   │   ├── actions.ts        # Server actions for movements
-│   │   ├── actions-licores.ts # Liquor data management
-│   │   ├── layout.tsx        # App layout
-│   │   ├── page.tsx          # Main application (432 lines, refactored from 1460)
-│   │   └── api/              # API routes
-│   └── components/
-│       ├── Calendar/         # Date selection component
-│       ├── Modals/          # Confirmation and cancellation modals
-│       ├── MovementCard/    # Individual movement display
-│       ├── Navigation/      # Section navigation tabs
-│       ├── NotificationSystem/ # Toast notifications
-│       ├── ScrollToCheckoutButton/ # UX enhancement
-│       └── Sections/        # Main content sections
-│           ├── SelectionSection.tsx    # Liquor selection interface
-│           ├── HistorySection.tsx      # Movement history
-│           └── StatisticsSection.tsx   # Analytics dashboard
-├── tailwind.config.js       # Custom casino theme configuration
-└── README.md
+Requisitos: Node.js 22 y la API corriendo (en local o desplegada). pnpm llega por corepack, en la versión fijada en `packageManager`.
+
+```bash
+git clone https://github.com/lejito/beverage-ledger.git
+cd beverage-ledger
+corepack enable
+pnpm install
+
+cp .env.example .env     # NEXT_PUBLIC_API_URL apunta a la API
+pnpm dev                 # http://localhost:3000
 ```
 
----
-
-## 🌐 Live Demo & Deployment
-
-### 🚀 **Production Demo**
-**Experience the full application:** [https://beverage-ledger.vercel.app](https://beverage-ledger.vercel.app)
-
-**Demo Features:**
-- ✅ **Full functionality** - All features available for testing
-- ✅ **Real-time database** - Persistent data storage
-- ✅ **Responsive design** - Test on any device
-- ✅ **PDF generation** - Download sample invoices
-- ✅ **Live statistics** - Interactive analytics dashboard
-
-### 🔧 **Technology Stack**
-- **Frontend:** Next.js 15 with TypeScript and Tailwind CSS
-- **Backend:** Serverless functions with Neon PostgreSQL
-- **Hosting:** Vercel with automatic deployments
-- **Domain:** Custom subdomain with SSL encryption
-
-### 📱 **Compatibility**
-- **Desktop:** Chrome, Firefox, Safari, Edge
-- **Mobile:** iOS Safari, Android Chrome
-- **Tablets:** iPad, Android tablets
-- **Performance:** Optimized for fast loading and smooth interactions
+| Variable | Para qué |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Origen de la API, sin `/api/v1` y sin barra final |
+| `NEXT_PUBLIC_GOOGLE_SIGN_IN` | `true` solo si la API tiene credenciales de Google |
+| `NEXT_PUBLIC_BRAND_NAME` | Nombre del producto en las pantallas sin sesión (opcional) |
+| `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` | Usuario de las pruebas que inician sesión contra la API real |
 
 ---
 
-## 🎨 Design Philosophy
+## Estructura
 
-The application embraces a **casino aesthetic** with:
-- **Gold Accent Color** (`#D4AF37`) - Representing luxury and elegance
-- **Dark Background** (`#120006`) - Professional casino atmosphere
-- **Smooth Animations** - Sophisticated transitions between sections
-- **Typography** - Clean, readable fonts suitable for operational use
-- **Responsive Layout** - Optimized for various screen sizes and devices
+```
+src/
+  app/                 rutas (App Router): páginas delgadas que componen features
+  components/ui/       primitivos sin lógica de negocio ni llamadas a la API
+  components/layout/   estructura: AppShell, Topbar, navegación
+  features/<dominio>/  componentes, hooks y lógica de cada dominio
+  lib/api/             cliente HTTP, sesión, refresh y errores
+  lib/forms/           reglas de validación y useFormValidation
+  i18n/                mensajes y configuración de idioma
+tests/                 pruebas de caminos, una por requisito funcional
+tests/regression/      pruebas de regresión
+Jenkinsfile            pipeline de integración y despliegue
+vercel.json            desactiva los despliegues automáticos de Vercel
+```
+
+Las dependencias van en una sola dirección: `app/` → `features/` → `components/ui/`.
+
+---
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm dev` | Desarrollo con recarga |
+| `pnpm build` / `start` | Compila y sirve |
+| `pnpm lint` / `typecheck` / `format:check` | Calidad de código |
+| `pnpm test` | Pruebas (Vitest) |
+| `pnpm test:coverage` | Las mismas, con `coverage/lcov.info` para SonarQube |
+| `pnpm api:types` | Regenera los tipos del cliente desde el OpenAPI de la API |
+| `pnpm i18n:check` | Verifica que los dos idiomas tengan las mismas claves |
+
+---
+
+## Pruebas
+
+Las pruebas viven en `tests/` y corren en jsdom. Ejercitan el código real de `src/` y solo simulan la red o el cliente `api`:
+
+- **Pruebas de caminos** (`tests/rf-NN-front-*.test.ts(x)`): una por requisito funcional. Las de componentes renderizan el componente real con sus hooks simulados.
+- **Pruebas de regresión** (`tests/regression/`): fijan comportamientos que un cambio podría romper sin que las de caminos lo noten, como que dos renovaciones de sesión simultáneas hagan una sola llamada.
+- **Cuatro suites inician sesión contra la API real**: necesitan `TEST_USER_EMAIL`, `TEST_USER_PASSWORD` y un `NEXT_PUBLIC_API_URL` que responda.
+
+El coverage se mide solo sobre los archivos que alguna prueba ejecuta, y el mínimo exigido es del **90 %**: `coverage.include` en `vitest.config.mts` y `sonar.coverage.exclusions` en `sonar-project.properties` se mueven juntas.
+
+---
+
+## Integración y despliegue continuos
+
+Cada push a `main` lanza el pipeline en Jenkins, definido en el [`Jenkinsfile`](./Jenkinsfile):
+
+1. **Instalación de dependencias**.
+2. **Revisión estática**: lint, tipos y formato.
+3. **Pruebas (unitarias, regresión)**, con coverage. Antes de lanzarlas, el pipeline despierta la API de Render, que en el plan gratuito puede estar dormida.
+4. **Compilación**.
+5. **Calidad (SonarQube)**: análisis y umbral de calidad; si no se cumple, el pipeline se detiene.
+6. **Despliegue** en Vercel con su CLI, solo desde `main` y solo si todo lo anterior pasó.
+
+Si una fase falla, las siguientes no se ejecutan y nada llega a producción.
+
+**Vercel no despliega por su cuenta:** `vercel.json` desactiva los despliegues por push, y el `NEXT_PUBLIC_API_URL` de producción se configura en el proyecto de Vercel.
+
+El servidor de Jenkins y SonarQube corren en Docker desde la carpeta `jenkins/beverage-ledger/`; su `README.md` explica cómo levantarlos.
 
 ---
 
@@ -180,7 +187,7 @@ For licensing inquiries, contact: **Tomás Córdoba Urquijo**
 
 This software and all associated materials are protected under:
 - Copyright laws
-- International copyright treaties  
+- International copyright treaties
 - Intellectual property laws and treaties
 
 **Violation may result in civil penalties, criminal prosecution, monetary damages, and permanent injunction.**
