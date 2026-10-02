@@ -15,7 +15,7 @@ El nombre no es casual: la fuente de verdad del inventario es un **ledger inmuta
 | | Repositorio | Stack |
 |---|---|---|
 | Frontend | `beverage-ledger` (este) → `C:\VisualProjects\beverage-ledger` | Next.js 15 (App Router), TypeScript, Tailwind |
-| Backend | [`beverage-ledger-api`](https://github.com/lejito/beverage-ledger-api) → `C:\VisualProjects\beverage-ledger-api` | NestJS, Prisma, Supabase Postgres |
+| Backend | `beverage-ledger-api` → `C:\VisualProjects\beverage-ledger-api` | NestJS, Prisma, Supabase Postgres |
 
 ---
 

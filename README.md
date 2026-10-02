@@ -30,7 +30,7 @@
 
 Frontend de **Beverage Ledger**: registra movimientos de inventario —entradas, salidas, traspasos entre bodegas y ajustes—, muestra existencias por bodega con su kardex, reportes de consumo, historial auditable y PDF de cada movimiento.
 
-> Este repositorio es solo el frontend. Toda la lógica de negocio vive en la API, [`beverage-ledger-api`](https://github.com/lejito/beverage-ledger-api); el servidor de integración continua está en la carpeta `jenkins/beverage-ledger/`, hermana de los dos clones.
+> Este repositorio es solo el frontend. Toda la lógica de negocio vive en la API, en el repositorio `beverage-ledger-api`; el servidor de integración continua está en la carpeta `jenkins/beverage-ledger/`, hermana de los dos clones.
 
 Lo que hace la aplicación:
 
@@ -62,7 +62,7 @@ La sesión usa un access token en memoria y una cookie `httpOnly` de refresh emi
 Requisitos: Node.js 22 y la API corriendo (en local o desplegada). pnpm llega por corepack, en la versión fijada en `packageManager`.
 
 ```bash
-git clone https://github.com/lejito/beverage-ledger.git
+git clone https://github.com/sepita1234/beverage-ledger.git
 cd beverage-ledger
 corepack enable
 pnpm install
