@@ -5,7 +5,12 @@ import { useNotify } from '@/components/ui';
 import { useBrands, useCreateBrand, useDeleteBrand, useUpdateBrand } from '@/features/catalog';
 import { describeError } from '@/lib/api';
 import { useManualRefresh } from '@/lib/hooks';
-import { TaxonomyView, type TaxonomyItem, type TaxonomyValues } from './TaxonomyView';
+import {
+  TaxonomyView,
+  useTaxonomyCopy,
+  type TaxonomyItem,
+  type TaxonomyValues,
+} from './TaxonomyView';
 
 export function BrandsView() {
   const t = useTranslations('admin.brands');
@@ -17,26 +22,14 @@ export function BrandsView() {
   const update = useUpdateBrand();
   const remove = useDeleteBrand();
   const notify = useNotify();
+  const copy = useTaxonomyCopy('admin.brands');
 
   const report = (error: unknown, title: string) =>
     notify('error', title, describeError(error, tStates('tryAgain')));
 
   return (
     <TaxonomyView
-      copy={{
-        title: t('title'),
-        subtitle: t('subtitle'),
-        newItem: t('new'),
-        loadFailed: t('loadFailed'),
-        loading: t('loading'),
-        empty: t('empty'),
-        createTitle: t('form.createTitle'),
-        editTitle: (name) => t('form.editTitle', { name }),
-        formDescription: t('form.description'),
-        deleteTitle: (name) => t('delete.title', { name }),
-        deleteDescription: t('delete.description'),
-        blockedInUse: (count) => t('delete.blockedInUse', { count }),
-      }}
+      copy={copy}
       items={brands}
       isPending={isPending}
       isError={isError}

@@ -57,6 +57,30 @@ export interface TaxonomyCopy {
   deleteDescription: string;
   blockedInUse: (count: number) => string;
 }
+
+/**
+ * Brands and categories keep the same keys under their own namespace, so the
+ * sentences are still translated per noun while the mapping lives once.
+ */
+export function useTaxonomyCopy(namespace: 'admin.brands' | 'admin.categories'): TaxonomyCopy {
+  const t = useTranslations(namespace);
+
+  return {
+    title: t('title'),
+    subtitle: t('subtitle'),
+    newItem: t('new'),
+    loadFailed: t('loadFailed'),
+    loading: t('loading'),
+    empty: t('empty'),
+    createTitle: t('form.createTitle'),
+    editTitle: (name) => t('form.editTitle', { name }),
+    formDescription: t('form.description'),
+    deleteTitle: (name) => t('delete.title', { name }),
+    deleteDescription: t('delete.description'),
+    blockedInUse: (count) => t('delete.blockedInUse', { count }),
+  };
+}
+
 interface TaxonomyViewProps {
   copy: TaxonomyCopy;
   items: TaxonomyItem[];

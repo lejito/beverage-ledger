@@ -7,10 +7,10 @@ import {
   Card,
   EmptyState,
   Field,
-  FormAlert,
   Input,
   Spinner,
   useNotify,
+  ValidatedForm,
 } from '@/components/ui';
 import { describeError } from '@/lib/api';
 import { rules, useFormValidation } from '@/lib/forms';
@@ -87,14 +87,7 @@ export function OrganizationView() {
       </header>
 
       <Card className="max-w-2xl">
-        <form
-          ref={validation.ref}
-          noValidate
-          onSubmit={validation.onSubmit(() => void submit())}
-          className="space-y-4"
-        >
-          {validation.alert && <FormAlert title={validation.alert} />}
-
+        <ValidatedForm validation={validation} onValid={() => void submit()}>
           <Field label={t('name')} hint={t('nameHint')} error={validation.errorFor('name')}>
             {({ id, describedBy, invalid }) => (
               <Input
@@ -188,7 +181,7 @@ export function OrganizationView() {
               {tActions('save')}
             </Button>
           </div>
-        </form>
+        </ValidatedForm>
       </Card>
     </div>
   );

@@ -10,7 +10,12 @@ import {
 } from '@/features/catalog';
 import { describeError } from '@/lib/api';
 import { useManualRefresh } from '@/lib/hooks';
-import { TaxonomyView, type TaxonomyItem, type TaxonomyValues } from './TaxonomyView';
+import {
+  TaxonomyView,
+  useTaxonomyCopy,
+  type TaxonomyItem,
+  type TaxonomyValues,
+} from './TaxonomyView';
 
 export function CategoriesView() {
   const t = useTranslations('admin.categories');
@@ -22,26 +27,14 @@ export function CategoriesView() {
   const update = useUpdateCategory();
   const remove = useDeleteCategory();
   const notify = useNotify();
+  const copy = useTaxonomyCopy('admin.categories');
 
   const report = (error: unknown, title: string) =>
     notify('error', title, describeError(error, tStates('tryAgain')));
 
   return (
     <TaxonomyView
-      copy={{
-        title: t('title'),
-        subtitle: t('subtitle'),
-        newItem: t('new'),
-        loadFailed: t('loadFailed'),
-        loading: t('loading'),
-        empty: t('empty'),
-        createTitle: t('form.createTitle'),
-        editTitle: (name) => t('form.editTitle', { name }),
-        formDescription: t('form.description'),
-        deleteTitle: (name) => t('delete.title', { name }),
-        deleteDescription: t('delete.description'),
-        blockedInUse: (count) => t('delete.blockedInUse', { count }),
-      }}
+      copy={copy}
       items={categories}
       isPending={isPending}
       isError={isError}

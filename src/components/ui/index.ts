@@ -15,10 +15,12 @@ export {
 } from './Dialog';
 export { EmptyState } from './EmptyState';
 export { Field, type FieldControlProps } from './Field';
+export { FilteredEmptyState } from './FilteredEmptyState';
 export { FloatingAction, type FloatingActionItem } from './FloatingAction';
 export { FormAlert } from './FormAlert';
 export { Input, PasswordInput, type InputProps } from './Input';
 export { NotificationsProvider, useNotify, type NotificationTone } from './Notifications';
+export { PagedTable } from './PagedTable';
 export { Pagination } from './Pagination';
 export { Popover, PopoverClose, PopoverContent, PopoverTrigger } from './Popover';
 export { RefreshButton } from './RefreshButton';
@@ -29,3 +31,4 @@ export { Skeleton, SkeletonText } from './Skeleton';
 export { Spinner } from './Spinner';
 export { StatTile } from './StatTile';
 export { Textarea } from './Textarea';
+export { ValidatedForm } from './ValidatedForm';

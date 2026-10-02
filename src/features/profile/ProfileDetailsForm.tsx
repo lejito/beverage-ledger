@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { Button, Card, Field, FormAlert, Input, useNotify } from '@/components/ui';
+import { Button, Card, Field, Input, useNotify, ValidatedForm } from '@/components/ui';
 import { useAuth } from '@/features/auth';
 import { describeError } from '@/lib/api';
 import { rules, useFormValidation } from '@/lib/forms';
@@ -63,14 +63,7 @@ export function ProfileDetailsForm() {
 
   return (
     <Card className="max-w-2xl">
-      <form
-        ref={validation.ref}
-        noValidate
-        onSubmit={validation.onSubmit(() => void submit())}
-        className="space-y-4"
-      >
-        {validation.alert && <FormAlert title={validation.alert} />}
-
+      <ValidatedForm validation={validation} onValid={() => void submit()}>
         <Field label={t('name')} hint={t('nameHint')} error={validation.errorFor('name')}>
           {({ id, describedBy, invalid }) => (
             <Input
@@ -135,7 +128,7 @@ export function ProfileDetailsForm() {
             {tActions('save')}
           </Button>
         </div>
-      </form>
+      </ValidatedForm>
     </Card>
   );
 }

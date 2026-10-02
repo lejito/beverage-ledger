@@ -210,7 +210,9 @@ Ni colores, ni z-index, ni endpoints, ni textos, ni valores de negocio, ni nombr
 components/ui/       Primitivos globales. Sin lógica de negocio, sin llamadas a la API.
                      Hoy existen: Button, Input, Textarea, Select, Field, Dialog,
                      ConfirmDialog, Popover, DatePicker, Card, Badge, DataTable,
-                     StatTile, SegmentedControl, Spinner, EmptyState, Notifications.
+                     StatTile, SegmentedControl, Spinner, EmptyState, Notifications,
+                     PagedTable (tabla + paginación + fallo), FilteredEmptyState y
+                     ValidatedForm (el <form> que espera useFormValidation).
 components/layout/   Estructura: AppShell, Topbar (producto) · MarketingNav, Footer (landing).
 features/<dominio>/  Funcionalidad: componentes, hooks y lógica de un dominio concreto
                      (auth, catalog, movements, stock, reports, dashboard, admin,

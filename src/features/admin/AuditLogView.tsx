@@ -4,11 +4,9 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
   Button,
-  Card,
-  DataTable,
   DatePicker,
-  EmptyState,
-  Pagination,
+  FilteredEmptyState,
+  PagedTable,
   RefreshButton,
   Select,
   Skeleton,
@@ -16,7 +14,7 @@ import {
 } from '@/components/ui';
 import { useAuth } from '@/features/auth';
 import type { AuditAction, AuditEntity, AuditLog } from '@/lib/api';
-import { MAX_PAGE_SIZE, rowsOnPage, useManualRefresh, usePagination } from '@/lib/hooks';
+import { MAX_PAGE_SIZE, useManualRefresh, usePagination } from '@/lib/hooks';
 import { parseDateKey } from '@/lib/utils';
 import { useAuditLogs, useUsers, type AuditQuery } from './api';
 import { auditActionsOf, AUDIT_ENTITIES, auditEntityOf } from './audit-actions';
@@ -277,46 +275,28 @@ export function AuditLogView() {
         </div>
       )}
 
-      {error ? (
-        <EmptyState title={t('loadFailed')} description={tStates('apiUnreachable')} />
-      ) : (
-        <Card ref={pagination.anchorRef} className="scroll-mt-20 p-0 sm:p-0">
-          <DataTable
-            caption={t('caption')}
-            columns={columns}
-            rows={logs}
-            rowKey={(log) => log.id}
-            isLoading={isLoading}
-            skeletonRows={rowsOnPage(pagination.page, pagination.pageSize, data?.meta.total)}
-            loadingLabel={t('loading')}
-            className="px-2 py-1 sm:px-4 sm:py-2"
-            empty={
-              <EmptyState
-                title={hasFilters ? t('emptyFiltered') : t('empty')}
-                action={
-                  hasFilters ? (
-                    <Button variant="secondary" size="sm" onClick={clearFilters}>
-                      {tActions('clearFilters')}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            }
+      <PagedTable
+        caption={t('caption')}
+        columns={columns}
+        rows={logs}
+        rowKey={(log) => log.id}
+        isLoading={isLoading}
+        loadingLabel={t('loading')}
+        pagination={pagination}
+        meta={data?.meta}
+        failure={
+          error ? { title: t('loadFailed'), description: tStates('apiUnreachable') } : undefined
+        }
+        empty={
+          <FilteredEmptyState
+            isFiltered={hasFilters}
+            title={t('empty')}
+            filteredTitle={t('emptyFiltered')}
+            clearLabel={tActions('clearFilters')}
+            onClear={clearFilters}
           />
-        </Card>
-      )}
-
-      {data && (
-        <Pagination
-          page={pagination.page}
-          pageSize={pagination.pageSize}
-          total={data.meta.total}
-          pageCount={data.meta.pageCount}
-          isLoading={isLoading}
-          onPageChange={pagination.setPage}
-          onPageSizeChange={pagination.setPageSize}
-        />
-      )}
+        }
+      />
     </div>
   );
 }
