@@ -165,8 +165,8 @@ describe('RF-01 Frontend - Regresión de la sesión', () => {
     storeSession(sesion('jwt-secreto', 900));
 
     // Assert
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.length).toBe(0);
+    expect(localStorage).toHaveLength(0);
+    expect(sessionStorage).toHaveLength(0);
     expect(document.cookie).not.toContain('jwt-secreto');
   });
 });
