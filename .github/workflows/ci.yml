@@ -1,0 +1,131 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch supersedes a pull request run, but never a
+# run on the default branch: that one may be deploying.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+# One job per stage, chained with `needs` like the stages of the Jenkinsfile:
+# a failing job stops every job after it. Each job runs on a fresh runner, so
+# each sets up again; the pnpm cache keeps that to seconds.
+jobs:
+  install:
+    name: Instalación de dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+  static:
+    name: Revisión estática
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Lint
+        run: pnpm lint
+      - name: Tipos
+        run: pnpm typecheck
+      - name: Formato
+        run: pnpm format:check
+
+  test:
+    name: Pruebas (unitarias, regresión)
+    needs: static
+    runs-on: ubuntu-latest
+    env:
+      # src/config/api.ts refuses to load without it; no test calls it.
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Pruebas con coverage
+        run: pnpm test:coverage
+      - name: Guardar el reporte de coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          retention-days: 7
+
+  build:
+    name: Compilación
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Compilación
+        run: pnpm build
+
+  quality:
+    name: Calidad (SonarQube Cloud)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Sonar needs the full history to attribute code and compute "new code".
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Recuperar el reporte de coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+      # sonar-project.properties carries the analysis settings; the
+      # organization and project key come from repository variables so the
+      # same file serves whichever SonarQube Cloud account imports the repo.
+      # qualitygate.wait fails this job when the gate fails, so nothing ships.
+      - name: Análisis y umbral de calidad
+        uses: SonarSource/sonarqube-scan-action@v8
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.qualitygate.wait=true
+
+  deploy:
+    name: Despliegue
+    needs: quality
+    # Production moves only from the default branch, never from a pull request.
+    # Vercel's git deployments are off (vercel.json), so this is the only way in.
+    if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    # NEXT_PUBLIC_API_URL is deliberately absent here: the production build
+    # takes it from the Vercel project, pulled below.
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Despliegue en Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          pnpm dlx vercel@62.0.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+          pnpm dlx vercel@62.0.0 build --prod --token="$VERCEL_TOKEN"
+          pnpm dlx vercel@62.0.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"

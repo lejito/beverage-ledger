@@ -7,7 +7,8 @@ import type { UserRole, UserStatus } from '@/lib/api';
  * labelled in `admin.roles` — an existing one still has to display — but never
  * offered here.
  */
-export const ASSIGNABLE_ROLES: UserRole[] = ['OPERATOR', 'MANAGER', 'ORG_ADMIN'];
+export const ASSIGNABLE_ROLES: UserRole[] = ['OPERATOR', 'MANAGER', 'ORG_ADMIN']; // ORIGINAL
+// export const ASSIGNABLE_ROLES: UserRole[] = ['OPERATOR', 'MANAGER', 'ORG_ADMIN', 'PLATFORM_ADMIN']; // ALTERADO
 
 export const STATUS_TONES = {
   ACTIVE: 'success',
