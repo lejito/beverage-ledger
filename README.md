@@ -76,7 +76,6 @@ pnpm dev                 # http://localhost:3000
 | `NEXT_PUBLIC_API_URL` | Origen de la API, sin `/api/v1` y sin barra final |
 | `NEXT_PUBLIC_GOOGLE_SIGN_IN` | `true` solo si la API tiene credenciales de Google |
 | `NEXT_PUBLIC_BRAND_NAME` | Nombre del producto en las pantallas sin sesión (opcional) |
-| `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` | Usuario de las pruebas que inician sesión contra la API real |
 
 ---
 
@@ -121,7 +120,7 @@ Las pruebas viven en `tests/` y corren en jsdom. Ejercitan el código real de `s
 
 - **Pruebas de caminos** (`tests/rf-NN-front-*.test.ts(x)`): una por requisito funcional. Las de componentes renderizan el componente real con sus hooks simulados.
 - **Pruebas de regresión** (`tests/regression/`): fijan comportamientos que un cambio podría romper sin que las de caminos lo noten, como que dos renovaciones de sesión simultáneas hagan una sola llamada.
-- **Cuatro suites inician sesión contra la API real**: necesitan `TEST_USER_EMAIL`, `TEST_USER_PASSWORD` y un `NEXT_PUBLIC_API_URL` que responda.
+- **Ninguna prueba toca la red**: corren sin la API levantada y sin credenciales.
 
 El coverage se mide solo sobre los archivos que alguna prueba ejecuta, y el mínimo exigido es del **90 %**: `coverage.include` en `vitest.config.mts` y `sonar.coverage.exclusions` en `sonar-project.properties` se mueven juntas.
 
@@ -133,7 +132,7 @@ Cada push a `main` lanza el pipeline en Jenkins, definido en el [`Jenkinsfile`](
 
 1. **Instalación de dependencias**.
 2. **Revisión estática**: lint, tipos y formato.
-3. **Pruebas (unitarias, regresión)**, con coverage. Antes de lanzarlas, el pipeline despierta la API de Render, que en el plan gratuito puede estar dormida.
+3. **Pruebas (unitarias, regresión)**, con coverage.
 4. **Compilación**.
 5. **Calidad (SonarQube)**: análisis y umbral de calidad; si no se cumple, el pipeline se detiene.
 6. **Despliegue** en Vercel con su CLI, solo desde `main` y solo si todo lo anterior pasó.
