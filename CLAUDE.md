@@ -74,8 +74,14 @@ pnpm install --frozen-lockfile  # lo que hace CI: falla si el lockfile no cuadra
 pnpm dev                        # servidor de desarrollo (Turbopack) en :3000
 pnpm build                      # build de producción
 pnpm start                      # servir el build
-pnpm test                       # Vitest, las pruebas de caminos de tests/
-pnpm test:coverage              # las mismas + coverage/lcov.info para SonarCloud
+pnpm test                       # Vitest: unitarias, funcionales y de seguridad, sin red
+pnpm test:unit                  # solo las de caminos de tests/
+pnpm test:funcional             # regresión funcional: pantallas reales sobre una API falsa
+pnpm test:seguridad             # regresión de seguridad del cliente
+pnpm test:coverage              # unitarias y funcionales + coverage para Sonar
+pnpm test:screenplay            # Serenity/JS + Playwright contra la API desplegada (pnpm build antes)
+pnpm test:screenplay:report     # el reporte HTML de Serenity BDD (necesita Java 17+)
+pnpm test:e2e                   # Playwright de punta a punta (pnpm build antes)
 pnpm api:types                  # regenera src/lib/api/schema.d.ts desde la API viva
 pnpm i18n:check                 # es.json y en.json tienen las mismas claves
 pnpm lint                       # ESLint (pnpm lint:fix para autocorregir)
@@ -88,11 +94,23 @@ pnpm test -t "<nombre del caso>"                          # filtrar por nombre d
 
 Las pruebas viven en `tests/`, no junto al código, con el nombre `rf-<NN>-<front|conexion>-<unidad>.test.ts(x)`: `NN` es el requisito funcional que cubren. Corren en jsdom, en serie (`fileParallelism: false`), y `vitest.config.mts` carga el `.env` con `loadEnv`, así que no hace falta exportar variables a mano.
 
-**Ninguna prueba toca la red.** Simulan `fetch` o el cliente `api` y ejercen el código real de `src/`. Hubo cuatro (`rf-01-front-handle-submit`, `rf-03-front-accept-invite-form`, `rf-09-front-submit`, `rf-29-front-change-status`) que iniciaban sesión contra la API real; se borraron porque probaban la API y no el front, duplicaban caminos que ya cubren sus versiones con dobles (`rf-01-front-validate-credentials`, `rf-03-front-accept`, `rf-09-front-update`, `rf-29-front-update`), fallaban sin una API levantada y `rf-09` escribía en la base de producción en cada build.
+| Suite | Carpeta | Contra qué corre |
+|---|---|---|
+| Vitest `unit` | `tests/*.test.ts(x)` | dobles del cliente o de `fetch` |
+| Vitest `funcional` | `tests/regression/funcional/` | las pantallas reales con sus proveedores, sobre una API falsa en memoria (`tests/support/fake-api.ts`) |
+| Vitest `seguridad` | `tests/regression/seguridad/` | lo mismo, más `next.config.ts` |
+| Playwright `screenplay` | `e2e/screenplay/` | `next start` y **la API desplegada en Render** |
+| Playwright `e2e` | `e2e/flujos/` | `next start` y **la API desplegada en Render** |
+
+Las regresiones cubren solo las 6 funcionalidades que ya tenían una: RF-01, 03, 06, 09, 29 y 30. Las suites de Vitest usan el alias `@tests/`, y las de Playwright, `@e2e/`, porque ESLint prohíbe los imports relativos que suben de directorio.
+
+**Ninguna prueba de Vitest toca la red.** Simulan `fetch` o el cliente `api` y ejercen el código real de `src/`. Las de navegador sí, por decisión del usuario: entran con las cuentas fijas de CI (`CI_ADMIN`, `CI_MANAGER`, `CI_OPERATOR`) y respetan el límite de login de la API con un presupuesto compartido (`e2e/support/throttle.ts`). Solo crean **un miembro por corrida**, en el escenario Screenplay del ciclo de un miembro, que termina suspendido. Necesitan que el `CORS_ORIGINS` de la API incluya `http://localhost:3000`. Las pendientes de la heurística (preguntas 36, 41 y 42) van como `test.fixme`.
+
+Hubo cuatro (`rf-01-front-handle-submit`, `rf-03-front-accept-invite-form`, `rf-09-front-submit`, `rf-29-front-change-status`) que iniciaban sesión contra la API real; se borraron porque probaban la API y no el front, duplicaban caminos que ya cubren sus versiones con dobles (`rf-01-front-validate-credentials`, `rf-03-front-accept`, `rf-09-front-update`, `rf-29-front-update`), fallaban sin una API levantada y `rf-09` escribía en la base de producción en cada build.
 
 ### CI con Jenkins
 
-Además del workflow de GitHub Actions, el pipeline está en el `Jenkinsfile` de la raíz. **El servidor no vive en este repo**: es una instancia compartida con la API, definida en la carpeta `jenkins/beverage-ledger/`, hermana de los clones (sin versionar). Allí están la imagen con Node 22 y corepack, los plugins, un **SonarQube local** con su Postgres (http://localhost:9000) y toda la configuración como código (`casc.yaml`): usuario admin, credenciales (`next-public-api-url`, `sonar-token`) y los dos jobs, `beverage-ledger` y `beverage-ledger-api`, ambos sobre `main`. No hay asistente de instalación; lo que se cambie en la UI se pierde al reiniciar.
+Además del workflow de GitHub Actions, el pipeline está en el `Jenkinsfile` de la raíz. **El servidor no vive en este repo**: es una instancia compartida con la API, definida en la carpeta `jenkins/beverage-ledger/`, hermana de los clones (sin versionar). Allí están la imagen con Node 22 y corepack, los plugins, un **SonarQube local** con su Postgres (http://localhost:9000) y toda la configuración como código (`casc.yaml`): usuario admin, credenciales (`next-public-api-url`, `sonar-token` y las cuentas `ci-admin`, `ci-manager`, `ci-operator` y `ci-lockout`) y los dos jobs, `beverage-ledger` y `beverage-ledger-api`, ambos sobre `main`. No hay asistente de instalación; lo que se cambie en la UI se pierde al reiniciar.
 
 ```bash
 cd ../jenkins/beverage-ledger
@@ -100,7 +118,8 @@ cp .env.example .env          # admin, SONAR_TOKEN, API y usuario de prueba
 docker compose up -d --build  # Jenkins en :8080, SonarQube en :9000
 ```
 
-- **Las fases, en orden**: `Instalación de dependencias` → `Revisión estática` (lint, tipos y formato, seguidos y no en paralelo: el primero que falla corta) → `Pruebas (unitarias, regresión)` → `Compilación` → `Calidad (SonarQube)` → `Despliegue`. Cada una se detiene si falla, y ninguna posterior corre. Son las mismas que en el repo de la API.
+- **Las fases, en orden**: `Instalación de dependencias` (incluye Chromium para Playwright) → `Revisión estática` (lint, tipos y formato, seguidos y no en paralelo: el primero que falla corta) → `Pruebas unitarias` → `Compilación` → `Pruebas de regresión` (`Pruebas funcionales` → `Pruebas de seguridad`, que además corre `pnpm audit --prod --audit-level high` → `Pruebas automatizadas (Screenplay + Serenity)`) → `Pruebas E2E` → `Calidad (SonarQube)` → `Despliegue`. Cada una se detiene si falla, y ninguna posterior corre. Sonar lee el coverage de `coverage/unit` y `coverage/funcional`.
+- **Screenplay y E2E corren bajo `lock('render-api')`**, el mismo candado que las pruebas de API del otro job, porque comparten el límite de login. El reporte de Serenity BDD se publica en el build (plugin `htmlpublisher`) y se archiva en `target/site/serenity`.
 - **Despliega Jenkins, no Vercel.** `vercel.json` apaga los despliegues por push (`git.deploymentEnabled: false`); la fase `Despliegue` usa la CLI (`vercel pull`, `build --prod`, `deploy --prebuilt --prod`) solo en `main` y solo si pasaron todas las fases anteriores, umbral de calidad de SonarQube incluido. El `NEXT_PUBLIC_API_URL` de producción sale del proyecto de Vercel, no del de Jenkins, que solo sirve a los tests.
 - **El stage de análisis va contra el SonarQube local, no contra SonarCloud**: el servidor sale de `SONAR_HOST_URL`, que pone Jenkins, y el `Jenkinsfile` no nombra ninguno. GitHub Actions sigue analizando en SonarCloud con `sonar-project.properties`, cuyo `sonar.organization` el SonarQube local ignora.
 - **El job lee el `Jenkinsfile` de GitHub**, no del disco: un cambio al pipeline no corre hasta que se empuja. Un push a `main` lanza el build en segundos: el webhook del repo apunta a un canal de smee.io y el contenedor `smee` lo reenvía a Jenkins, que nunca queda expuesto a internet. Un sondeo cada 15 minutos recoge lo que se haya empujado con el relé apagado. El repo es privado: Jenkins clona con la credencial `github`, un token de solo lectura que va en `GITHUB_TOKEN` del `.env`.
