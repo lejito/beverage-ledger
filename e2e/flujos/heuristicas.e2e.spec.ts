@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectAccessible, messages, newPage, newSignedInPage } from '@e2e/support/browser';
+import {
+  AFTER_THROTTLED_CALL,
+  expectAccessible,
+  messages,
+  navigateInApp,
+  newPage,
+  newSignedInPage,
+} from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 
 /**
@@ -24,7 +31,7 @@ test.describe('Heurísticas verificables en las pantallas de las 6 funcionalidad
     await expectAccessible(page);
 
     await page.goto('/invite/enlace-inexistente');
-    await expect(page.getByText(messages.invite.invalidTitle)).toBeVisible();
+    await expect(page.getByText(messages.invite.invalidTitle)).toBeVisible(AFTER_THROTTLED_CALL);
     await expectAccessible(page);
   });
 
@@ -37,7 +44,7 @@ test.describe('Heurísticas verificables en las pantallas de las 6 funcionalidad
 
     for (const { ruta, titulo } of PANTALLAS_CON_SESION) {
       test(`Heurísticas 1 y 49 a 52 - ${ruta} tiene título visible y no tiene barreras WCAG 2.1 AA`, async () => {
-        await page.goto(ruta);
+        await navigateInApp(page, ruta);
         if (titulo)
           await expect(page.getByRole('heading', { level: 1, name: titulo })).toBeVisible();
         await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
@@ -50,7 +57,7 @@ test.describe('Heurísticas verificables en las pantallas de las 6 funcionalidad
     test.fixme(
       'Pendiente heurísticas 41 y 42 - las pantallas de administración enlazan a una ayuda',
       async () => {
-        await page.goto('/admin/users');
+        await navigateInApp(page, '/admin/users');
 
         await expect(page.getByRole('link', { name: /ayuda/i })).toBeVisible();
       },

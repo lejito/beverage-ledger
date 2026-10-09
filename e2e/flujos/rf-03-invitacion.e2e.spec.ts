@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { messages, newPage, newSignedInPage } from '@e2e/support/browser';
+import {
+  AFTER_THROTTLED_CALL,
+  messages,
+  navigateInApp,
+  newPage,
+  newSignedInPage,
+} from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 
 const textos = messages.admin.invitations;
@@ -19,7 +25,7 @@ test.describe.serial('RF-03 - Invitaciones', () => {
   });
 
   test('Caso 1 - emitir una invitación entrega un enlace de un solo uso', async () => {
-    await admin.goto('/admin/users');
+    await navigateInApp(admin, '/admin/users');
     await admin.getByRole('button', { name: messages.admin.users.new }).first().click();
 
     const dialogo = admin.getByRole('dialog');
@@ -39,7 +45,7 @@ test.describe.serial('RF-03 - Invitaciones', () => {
     const invitado = await newPage(browser);
     await invitado.goto(new URL(enlace).pathname);
 
-    await expect(invitado.getByText(email)).toBeVisible();
+    await expect(invitado.getByText(email)).toBeVisible(AFTER_THROTTLED_CALL);
     await expect(invitado.getByText(messages.common.passwordPolicy)).toBeVisible();
   });
 
@@ -47,17 +53,18 @@ test.describe.serial('RF-03 - Invitaciones', () => {
     browser,
   }) => {
     await admin.keyboard.press('Escape');
-    await admin.reload();
     const fila = admin.getByRole('row').filter({ hasText: email });
     await fila.getByRole('button', { name: textos.revoke }).click();
 
     const confirmacion = admin.getByRole('dialog');
     await expect(confirmacion.getByText(textos.revokeDescription)).toBeVisible();
-    await confirmacion.getByRole('button', { name: textos.revoke }).click();
+    await confirmacion.getByRole('button', { name: textos.revokeConfirm }).click();
     await expect(admin.getByText(textos.revoked).first()).toBeVisible();
 
     const invitado = await newPage(browser);
     await invitado.goto(new URL(enlace).pathname);
-    await expect(invitado.getByText(messages.invite.invalidTitle)).toBeVisible();
+    await expect(invitado.getByText(messages.invite.invalidTitle)).toBeVisible(
+      AFTER_THROTTLED_CALL,
+    );
   });
 });

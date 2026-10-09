@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { messages, newSignedInPage } from '@e2e/support/browser';
+import { messages, navigateInApp, newSignedInPage } from '@e2e/support/browser';
 import { CI_PRODUCT_NAME, e2eEnv } from '@e2e/support/env';
 
 const textos = messages.catalog;
@@ -11,7 +11,7 @@ test.describe.serial('RF-09 - Gestión de productos', () => {
 
   test.beforeAll(async ({ browser }) => {
     page = await newSignedInPage(browser, e2eEnv().admin);
-    await page.goto('/catalog');
+    await navigateInApp(page, '/catalog');
   });
 
   test('Caso 1 - la búsqueda encuentra el producto por su nombre', async () => {

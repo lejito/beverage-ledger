@@ -1,11 +1,12 @@
 import { Ensure, equals } from '@serenity-js/assertions';
 import { describe, it, test } from '@serenity-js/playwright-test';
 import { Duration, Wait } from '@serenity-js/core';
-import { isVisible, Navigate, PageElement, By } from '@serenity-js/web';
+import { isVisible, PageElement, By } from '@serenity-js/web';
 import { messages } from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 import { Enlace } from '@e2e/screenplay/preguntas/pantalla';
 import { elenco } from '@e2e/screenplay/support/elenco';
+import { IrA } from '@e2e/screenplay/tareas/navegacion';
 import { IniciarSesion } from '@e2e/screenplay/tareas/sesion';
 
 test.use({
@@ -27,7 +28,7 @@ describe('Segregación de funciones en la interfaz', () => {
     await actorCalled('Óscar, operador').attemptsTo(
       IniciarSesion.como(e2eEnv().operator),
       Ensure.that(Enlace(messages.nav.items.admin).count(), equals(0)),
-      Navigate.to('/admin/users'),
+      IrA('/admin/users'),
       Wait.upTo(Duration.ofSeconds(15)).until(AvisoDeSinPermiso(), isVisible()),
     );
   });

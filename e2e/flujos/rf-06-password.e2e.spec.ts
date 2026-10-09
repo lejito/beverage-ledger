@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { messages, newSignedInPage } from '@e2e/support/browser';
+import { messages, navigateInApp, newSignedInPage } from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 
 const textos = messages.profile.password;
@@ -14,7 +14,7 @@ test.describe.serial('RF-06 - Cambio de contraseña', () => {
 
   test.beforeAll(async ({ browser }) => {
     page = await newSignedInPage(browser, e2eEnv().operator);
-    await page.goto('/profile');
+    await navigateInApp(page, '/profile');
   });
 
   test('Caso 1 - la política y la advertencia de cierre de sesiones están a la vista', async () => {

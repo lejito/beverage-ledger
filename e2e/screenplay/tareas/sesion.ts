@@ -6,6 +6,7 @@ import type { Credentials } from '@e2e/support/env';
 import { messages } from '@e2e/support/browser';
 import { respectAuthThrottle } from '@e2e/support/throttle';
 import { Boton, Campo, RutaActual } from '@e2e/screenplay/preguntas/pantalla';
+import { EsperarQueLaAppEsteLista } from '@e2e/screenplay/tareas/navegacion';
 
 const textos = messages.auth;
 
@@ -22,6 +23,7 @@ export const IntentarIniciarSesion = {
       `#actor intenta iniciar sesión como ${email}`,
       RespetarElLimiteDeAutenticacion(),
       Navigate.to('/login'),
+      EsperarQueLaAppEsteLista(),
       Enter.theValue(email).into(Campo(textos.fields.email)),
       Enter.theValue(password).into(Campo(textos.fields.password)),
       Click.on(Boton(textos.signIn.submit)),
@@ -33,6 +35,7 @@ export const IniciarSesion = {
     Task.where(
       `#actor inicia sesión como ${credenciales.email}`,
       IntentarIniciarSesion.como(credenciales),
-      Wait.upTo(Duration.ofSeconds(30)).until(RutaActual(), endsWith('/dashboard')),
+      // The sign-in may sit in the throttle queue for up to a minute first.
+      Wait.upTo(Duration.ofSeconds(90)).until(RutaActual(), endsWith('/dashboard')),
     ),
 };

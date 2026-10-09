@@ -38,7 +38,7 @@ describe('RF-06 - Pantalla de cambio de contraseña', () => {
   });
 
   it('Caso 3 - una contraseña actual incorrecta avisa y conserva lo escrito', async () => {
-    fakeApi.on('PUT /api/v1/users/me/password', apiError(401, 'The current password is incorrect'));
+    fakeApi.on('PUT /api/v1/users/me/password', apiError(400, 'The current password is incorrect'));
     renderScreen(<ChangePasswordForm />, 'OPERATOR');
 
     await llenar('Equivocada-2026', 'Nueva-Segura-2026');

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { messages, newPage, signIn } from '@e2e/support/browser';
+import { formAlert, messages, newPage, signIn, waitForHydration } from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 
 const { operator } = e2eEnv();
@@ -11,12 +11,13 @@ test.describe('RF-01 - Inicio de sesión', () => {
   }) => {
     const page = await newPage(browser);
     await page.goto('/login');
+    await waitForHydration(page);
 
     await page.getByLabel(messages.auth.fields.email).fill('nadie+e2e@beverageledger.test');
     await page.getByLabel(messages.auth.fields.password, { exact: true }).fill('NoExiste-2026');
     await page.getByRole('button', { name: messages.auth.signIn.submit }).click();
 
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(formAlert(page)).toBeVisible();
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -49,6 +50,7 @@ test.describe('RF-01 - Inicio de sesión', () => {
 
     await page.goto('/catalog');
     await page.waitForURL(/\/login\?next=%2Fcatalog/);
+    await waitForHydration(page);
     await page.getByLabel(messages.auth.fields.email).fill(operator.email);
     await page.getByLabel(messages.auth.fields.password, { exact: true }).fill(operator.password);
     await page.getByRole('button', { name: messages.auth.signIn.submit }).click();

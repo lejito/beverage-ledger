@@ -59,7 +59,8 @@ describe('Ciclo de vida de un miembro', () => {
 
       await nico.attemptsTo(
         IntentarIniciarSesion.como({ email, password: segunda }),
-        Wait.upTo(Duration.ofSeconds(15)).until(Alerta(), isVisible()),
+        // The attempt may wait in the throttle queue first, like any sign-in.
+        Wait.upTo(Duration.ofSeconds(90)).until(Alerta(), isVisible()),
         Ensure.that(RutaActual(), endsWith('/login')),
       );
 

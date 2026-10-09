@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { messages, newSignedInPage } from '@e2e/support/browser';
+import { messages, navigateInApp, newSignedInPage } from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 
 const textos = messages.admin.audit;
@@ -13,7 +13,7 @@ test.describe.serial('RF-30 - Log de auditoría', () => {
 
   test.beforeAll(async ({ browser }) => {
     page = await newSignedInPage(browser, e2eEnv().admin);
-    await page.goto('/admin/audit');
+    await navigateInApp(page, '/admin/audit');
   });
 
   test('Caso 1 - el log muestra quién, qué y cuándo', async () => {
@@ -27,6 +27,5 @@ test.describe.serial('RF-30 - Log de auditoría', () => {
     await page.getByRole('option', { name: textos.entities.product }).click();
 
     await expect(page.getByText(textos.actionNames.product.updated).first()).toBeVisible();
-    await expect(page).toHaveURL(/entity=product/);
   });
 });

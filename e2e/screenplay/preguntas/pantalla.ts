@@ -16,8 +16,9 @@ export const Enlace = (nombre: string) =>
 export const Dialogo = () =>
   PageElement.located(By.role('dialog')).describedAs('el diálogo abierto');
 
+// Scoped to the form: Next's route announcer also has role="alert", always empty.
 export const Alerta = () =>
-  PageElement.located(By.role('alert')).describedAs('la alerta del formulario');
+  PageElement.located(By.css('form [role="alert"]')).describedAs('la alerta del formulario');
 
 export const Titulo = () =>
   PageElement.located(By.role('heading', { level: 1 })).describedAs('el título de la pantalla');

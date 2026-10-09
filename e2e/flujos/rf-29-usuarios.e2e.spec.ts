@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { messages, newSignedInPage } from '@e2e/support/browser';
+import { findRowOnAnyPage, messages, navigateInApp, newSignedInPage } from '@e2e/support/browser';
 import { e2eEnv } from '@e2e/support/env';
 
 const textos = messages.admin.users;
@@ -11,18 +11,18 @@ test.describe.serial('RF-29 - Gestión de usuarios', () => {
 
   test.beforeAll(async ({ browser }) => {
     page = await newSignedInPage(browser, admin);
-    await page.goto('/admin/users');
+    await navigateInApp(page, '/admin/users');
   });
 
   test('Caso 1 - la fila propia se marca y no ofrece suspender', async () => {
-    const propia = page.getByRole('row').filter({ hasText: admin.email });
+    const propia = await findRowOnAnyPage(page, admin.email);
 
     await expect(propia.getByText(textos.you)).toBeVisible();
     await expect(propia.getByRole('button', { name: textos.suspend })).toHaveCount(0);
   });
 
   test('Caso 2 - suspender a otro miembro pide confirmación y cancelar no cambia su estado', async () => {
-    const fila = page.getByRole('row').filter({ hasText: operator.email });
+    const fila = await findRowOnAnyPage(page, operator.email);
     await fila.getByRole('button', { name: textos.suspend }).click();
 
     const dialogo = page.getByRole('dialog');

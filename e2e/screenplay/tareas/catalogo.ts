@@ -1,7 +1,8 @@
-import { Task, Wait } from '@serenity-js/core';
-import { By, Clear, Click, Enter, isVisible, Navigate, PageElement, Value } from '@serenity-js/web';
+import { Duration, Task, Wait } from '@serenity-js/core';
+import { By, Clear, Click, Enter, isVisible, PageElement, Value } from '@serenity-js/web';
 import { messages } from '@e2e/support/browser';
 import { Boton, Campo, Dialogo, FilaCon, Notificacion } from '@e2e/screenplay/preguntas/pantalla';
+import { IrA } from '@e2e/screenplay/tareas/navegacion';
 
 const catalogo = messages.catalog;
 const formulario = catalogo.form;
@@ -15,8 +16,10 @@ const Busqueda = () =>
 export const AbrirLaEdicionDe = (producto: string) =>
   Task.where(
     `#actor abre la edición de ${producto}`,
-    Navigate.to('/catalog'),
+    IrA('/catalog'),
     Enter.theValue(producto).into(Busqueda()),
+    // The list filters after a debounce; the row is not there on the first frame.
+    Wait.upTo(Duration.ofSeconds(30)).until(FilaCon(producto), isVisible()),
     Click.on(Boton(messages.common.actions.edit).of(FilaCon(producto))),
     Wait.until(Campo(formulario.minimumStock).of(Dialogo()), isVisible()),
   );
