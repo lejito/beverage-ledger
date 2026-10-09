@@ -2,9 +2,11 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminKeys } from '@/features/admin';
+import { sessionQueryKey } from '@/features/auth';
 import {
   api,
   assertOk,
+  storeSession,
   unwrap,
   type AcceptInvitationInput,
   type CreateInvitationInput,
@@ -72,9 +74,14 @@ export function useAcceptInvitation() {
   return useMutation({
     mutationFn: async (input: AcceptInvitationInput) =>
       unwrap(await api.POST('/api/v1/invitations/accept', { body: input })),
-    onSuccess: () => {
+    // Accepting opens a session exactly as a sign-in does. The cached session
+    // still says "anonymous" until it is refetched, and AuthGuard would send the
+    // new member to /login; awaited, so mutateAsync resolves only once it is in.
+    onSuccess: async (session) => {
+      storeSession(session);
       void queryClient.invalidateQueries({ queryKey: invitationKeys.all });
       void queryClient.invalidateQueries({ queryKey: adminKeys.users });
+      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     },
   });
 }

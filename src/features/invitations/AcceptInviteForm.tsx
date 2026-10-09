@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button, Card, Field, FormAlert, Input, PasswordInput, Spinner } from '@/components/ui';
 import { ROUTES } from '@/config/navigation';
-import { describeError, storeSession } from '@/lib/api';
+import { describeError } from '@/lib/api';
 import { rules, useFormValidation } from '@/lib/forms';
 import { useAcceptInvitation, useInvitationPreview } from './api';
 
@@ -40,7 +40,7 @@ export function AcceptInviteForm({ token }: Readonly<{ token: string }>) {
     try {
       // Accepting returns a session exactly as a sign-in does, so the new member
       // lands inside instead of being asked to type the password again.
-      storeSession(await accept.mutateAsync({ token, name: name.trim(), password }));
+      await accept.mutateAsync({ token, name: name.trim(), password });
       router.replace(ROUTES.dashboard);
     } catch (cause) {
       setError(describeError(cause, t('failed')));
