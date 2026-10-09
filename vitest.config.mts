@@ -8,7 +8,10 @@ process.env = { ...process.env, ...loadEnv('test', process.cwd(), '') };
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@tests': fileURLToPath(new URL('./tests', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
   test: {
     environment: 'jsdom',
@@ -16,6 +19,26 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
     },
+    // e2e/ belongs to Playwright: none of these projects may pick up its specs.
+    projects: [
+      { extends: true, test: { name: 'unit', include: ['tests/*.test.{ts,tsx}'] } },
+      {
+        extends: true,
+        test: {
+          name: 'funcional',
+          include: ['tests/regression/funcional/**/*.test.{ts,tsx}'],
+          setupFiles: ['tests/support/setup-screens.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'seguridad',
+          include: ['tests/regression/seguridad/**/*.test.{ts,tsx}'],
+          setupFiles: ['tests/support/setup-screens.ts'],
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
