@@ -47,7 +47,7 @@ export function Field({ label, hint, error, children, className }: Readonly<Fiel
       {children({ id, describedBy, invalid: Boolean(error) })}
 
       {hint && (
-        <p id={hintId} className="text-xs text-contrast/50">
+        <p id={hintId} className="text-xs text-contrast/70">
           {hint}
         </p>
       )}

@@ -100,19 +100,19 @@ export function ProfileDetailsForm() {
 
         <dl className="grid gap-4 border-t border-border/40 pt-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <dt className="text-xs font-medium uppercase tracking-wider text-contrast/60">
+            <dt className="text-xs font-medium uppercase tracking-wider text-contrast/70">
               {t('email')}
             </dt>
             <dd className="truncate text-sm text-contrast/80">{user.email}</dd>
           </div>
           <div className="space-y-1">
-            <dt className="text-xs font-medium uppercase tracking-wider text-contrast/60">
+            <dt className="text-xs font-medium uppercase tracking-wider text-contrast/70">
               {t('role')}
             </dt>
             <dd className="text-sm text-contrast/80">{tRoles(user.role)}</dd>
           </div>
         </dl>
-        <p className="text-xs text-contrast/50">{t('immutable')}</p>
+        <p className="text-xs text-contrast/70">{t('immutable')}</p>
 
         <div className="flex justify-end gap-3">
           <Button

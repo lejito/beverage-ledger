@@ -184,8 +184,9 @@ export function DataTable<T>({
                   className={cn(
                     // `truncate` rather than plain `whitespace-nowrap`: under a
                     // fixed layout a header wider than its column would print
-                    // straight over the one beside it.
-                    'truncate px-3 py-3 text-xs font-medium uppercase tracking-wider text-contrast/60',
+                    // straight over the one beside it. /70 and not lighter: at
+                    // text-xs anything fainter fails WCAG AA contrast.
+                    'truncate px-3 py-3 text-xs font-medium uppercase tracking-wider text-contrast/70',
                     column.align === 'end' ? 'text-right' : 'text-left',
                     hidden && hideClasses[hidden],
                   )}

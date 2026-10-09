@@ -94,7 +94,8 @@ function statusCellSkeleton() {
 
 function renderStatusCell(product: Product, tActive: string, tDeactivated: string) {
   return product.isActive ? (
-    <span className="text-xs text-contrast/40">{tActive}</span>
+    // Quiet next to the badge, but /40 at text-xs fell below WCAG AA contrast.
+    <span className="text-xs text-contrast/70">{tActive}</span>
   ) : (
     <Badge tone="danger">{tDeactivated}</Badge>
   );

@@ -112,7 +112,7 @@ export function ChangePasswordForm() {
         </Field>
 
         <div className="flex items-center justify-between gap-4 border-t border-border/40 pt-4">
-          <p className="text-xs text-contrast/50">{t('warning')}</p>
+          <p className="text-xs text-contrast/70">{t('warning')}</p>
           <Button type="submit" size="lg" isLoading={change.isPending}>
             {t('submit')}
           </Button>
