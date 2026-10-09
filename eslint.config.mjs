@@ -10,7 +10,17 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 /** @type {import('eslint').Linter.Config[]} */
 const eslintConfig = [
   {
-    ignores: ['.next/**', 'coverage/**', 'node_modules/**', 'next-env.d.ts', 'public/**'],
+    ignores: [
+      '.next/**',
+      'coverage/**',
+      'node_modules/**',
+      'next-env.d.ts',
+      'public/**',
+      // Playwright and Serenity BDD output.
+      'reports/**',
+      'test-results/**',
+      'target/**',
+    ],
   },
 
   ...compat.extends('next/core-web-vitals', 'next/typescript'),

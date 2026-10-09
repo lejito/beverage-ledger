@@ -43,8 +43,8 @@ jobs:
       - name: Formato
         run: pnpm format:check
 
-  test:
-    name: Pruebas (unitarias, regresión)
+  unit:
+    name: Pruebas unitarias
     needs: static
     runs-on: ubuntu-latest
     env:
@@ -53,18 +53,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - name: Pruebas con coverage
-        run: pnpm test:coverage
+      - name: Pruebas unitarias con coverage
+        run: pnpm test:unit --coverage --coverage.reportsDirectory=coverage/unit
       - name: Guardar el reporte de coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
-          path: coverage/lcov.info
+          name: coverage-unit
+          path: coverage/unit/lcov.info
           retention-days: 7
 
   build:
     name: Compilación
-    needs: test
+    needs: unit
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
@@ -73,10 +73,120 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Compilación
         run: pnpm build
+      # The browser jobs below serve this exact build instead of compiling again.
+      - name: Guardar la compilación
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next
+          include-hidden-files: true
+          retention-days: 1
+
+  functional:
+    name: Pruebas de regresión · Pruebas funcionales
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Pruebas funcionales con coverage
+        run: pnpm test:funcional --coverage --coverage.reportsDirectory=coverage/funcional
+      - name: Guardar el reporte de coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-funcional
+          path: coverage/funcional/lcov.info
+          retention-days: 7
+
+  security:
+    name: Pruebas de regresión · Pruebas de seguridad
+    needs: functional
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Pruebas de seguridad
+        run: pnpm test:seguridad
+      # Production dependencies only: dev tooling never reaches Vercel.
+      - name: Auditoría de dependencias
+        run: pnpm audit --prod --audit-level high
+
+  # The compiled app against the API deployed on Render, through dedicated CI
+  # accounts. One run at a time: every browser suite shares the login rate limit.
+  screenplay:
+    name: Pruebas de regresión · Pruebas automatizadas (Screenplay + Serenity)
+    needs: security
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: &browser-suites
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      CI_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL }}
+      CI_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD }}
+      CI_MANAGER_EMAIL: ${{ secrets.CI_MANAGER_EMAIL }}
+      CI_MANAGER_PASSWORD: ${{ secrets.CI_MANAGER_PASSWORD }}
+      CI_OPERATOR_EMAIL: ${{ secrets.CI_OPERATOR_EMAIL }}
+      CI_OPERATOR_PASSWORD: ${{ secrets.CI_OPERATOR_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next
+      # Serenity BDD's report CLI is a Java program.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Navegador
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Escenarios Screenplay
+        run: pnpm test:screenplay
+      - name: Reporte de Serenity BDD
+        if: always()
+        run: pnpm test:screenplay:report
+      - name: Guardar el reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: serenity-bdd
+          path: target/site/serenity
+          retention-days: 14
+
+  e2e:
+    name: Pruebas E2E
+    needs: screenplay
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next
+      - name: Navegador
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Pruebas E2E
+        run: pnpm test:e2e
+      - name: Guardar el reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e
+          path: |
+            reports/e2e
+            test-results
+          retention-days: 14
 
   quality:
     name: Calidad (SonarQube Cloud)
-    needs: build
+    needs: e2e
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,11 +194,17 @@ jobs:
           # Sonar needs the full history to attribute code and compute "new code".
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - name: Recuperar el reporte de coverage
+      - name: Recuperar los reportes de coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage
+          pattern: coverage-*
           path: coverage
+      # download-artifact puts each one in a folder named after it.
+      - name: Ordenar los reportes como los espera sonar-project.properties
+        run: |
+          mkdir -p coverage/unit coverage/funcional
+          mv coverage/coverage-unit/lcov.info coverage/unit/lcov.info
+          mv coverage/coverage-funcional/lcov.info coverage/funcional/lcov.info
       # sonar-project.properties carries the analysis settings; the
       # organization and project key come from repository variables so the
       # same file serves whichever SonarQube Cloud account imports the repo.
