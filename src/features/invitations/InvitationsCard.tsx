@@ -160,7 +160,6 @@ export function InvitationsCard() {
   const t = useTranslations('admin.invitations');
   const tRoles = useTranslations('admin.roles');
   const tStates = useTranslations('common.states');
-  const tActions = useTranslations('common.actions');
   const format = useFormatter();
 
   const pagination = usePagination('invitations');
@@ -235,8 +234,10 @@ export function InvitationsCard() {
         tone="danger"
         title={t('revokeTitle', { email: revoking?.email ?? '' })}
         description={t('revokeDescription')}
-        cancelLabel={tActions('cancel')}
-        confirmLabel={t('revoke')}
+        // Both would read "Cancelar" otherwise: cancelling the invitation and
+        // cancelling the dialog are the two choices here.
+        cancelLabel={t('revokeKeep')}
+        confirmLabel={t('revokeConfirm')}
         onConfirm={() => void confirmRevoke()}
         isConfirming={revoke.isPending}
       />

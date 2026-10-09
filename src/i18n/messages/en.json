@@ -714,6 +714,8 @@
       "empty": "You have not invited anyone yet.",
       "emptyDescription": "Inviting someone is the only way to add them to the organization.",
       "revoke": "Cancel",
+      "revokeConfirm": "Yes, cancel it",
+      "revokeKeep": "No, keep it",
       "revoked": "Invitation cancelled",
       "revokedDescription": "The link you sent to {email} no longer works.",
       "revokeFailed": "The invitation could not be cancelled.",
