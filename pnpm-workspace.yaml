@@ -44,10 +44,14 @@ overrides:
   js-yaml@4: ^4.3.0
   minimatch@3: ^3.1.4
   minimatch@9: ^9.0.7
+  # Reached through next > postcss, so they also ship to production.
+  nanoid@3: ^3.3.18
   picomatch@2: ^2.3.2
   picomatch@4: ^4.0.4
   postcss@8: ^8.5.18
+  source-map-js@1: ^1.2.2
   yaml@2: ^2.8.3
   # 0.x, so this is a breaking-change boundary by convention and it belongs to
   # next, not to us. Verified: sharp still loads and the build is unaffected.
-  sharp@<0.35.0: ^0.35.0
+  # Raised to 0.35.5 for the advisories patched in that line.
+  sharp@<0.35.5: ^0.35.5
