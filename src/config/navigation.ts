@@ -42,12 +42,17 @@ export function signInPath(returnTo?: string): string {
   return `${ROUTES.signIn}?${RETURN_TO_PARAM}=${encodeURIComponent(returnTo)}`;
 }
 
+const IN_APP_ORIGIN = 'https://app.invalid';
+
 /**
  * An open redirect is one absolute URL away, so only in-app paths are honoured.
+ *
+ * Checked by resolving the path rather than by its prefix: browsers read a
+ * backslash as a slash, so `/\evil.example` leaves the app as `//evil.example`.
  */
 export function safeReturnTo(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return ROUTES.dashboard;
-  return value;
+  if (!value?.startsWith('/')) return ROUTES.dashboard;
+  return new URL(value, IN_APP_ORIGIN).origin === IN_APP_ORIGIN ? value : ROUTES.dashboard;
 }
 
 /** Typed against the catalogue, so a renamed message breaks the build here. */
