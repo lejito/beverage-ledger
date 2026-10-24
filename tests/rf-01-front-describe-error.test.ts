@@ -65,4 +65,22 @@ describe('describeError', () => {
   it('Camino 4 - no es un Error y devuelve el respaldo', () => {
     expect(describeError({ reason: 'desconocido' }, RESPALDO)).toBe(RESPALDO);
   });
+
+  it('Camino 5 - es un error de servidor y añade su código de referencia', () => {
+    const error = new ApiError(500, {
+      ...cuerpo(500, 'Internal server error'),
+      code: 'ERR-1A2B3C4D',
+    });
+
+    expect(describeError(error, RESPALDO)).toBe('Internal server error (ERR-1A2B3C4D)');
+  });
+
+  it('Camino 6 - es un error de la persona y no muestra el código', () => {
+    const error = new ApiError(401, {
+      ...cuerpo(401, 'Invalid email or password'),
+      code: 'ERR-1A2B3C4D',
+    });
+
+    expect(describeError(error, RESPALDO)).toBe('Invalid email or password');
+  });
 });
