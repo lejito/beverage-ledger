@@ -71,7 +71,13 @@ export function Topbar() {
               variant="secondary"
               size="icon"
               className="ml-auto shrink-0 rounded-full"
-              aria-label={user ? t('account.menuFor', { name: user.name }) : t('account.menu')}
+              // The name starts with the initials on the button: someone driving the
+              // page by voice says what they see (WCAG 2.5.3, label in name).
+              aria-label={
+                user
+                  ? t('account.menuFor', { initials: initialsOf(user.name), name: user.name })
+                  : t('account.menu')
+              }
             >
               <span className="text-xs font-medium">{user ? initialsOf(user.name) : '—'}</span>
             </Button>

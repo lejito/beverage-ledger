@@ -186,7 +186,7 @@
     },
     "account": {
       "menu": "Menú de la cuenta",
-      "menuFor": "Menú de la cuenta de {name}",
+      "menuFor": "{initials} · Menú de la cuenta de {name}",
       "profile": "Tu perfil",
       "signOut": "Cerrar sesión",
       "landing": "Ir al sitio público"
