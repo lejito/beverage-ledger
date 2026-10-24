@@ -83,7 +83,7 @@ pipeline {
 
     stage('Pruebas de regresión') {
       stages {
-        stage('Pruebas funcionales') {
+        stage('Funcionales') {
           steps {
             sh 'pnpm test:funcional --coverage --coverage.reportsDirectory=coverage/funcional --reporter=default --reporter=junit --outputFile.junit=reports/funcional.xml'
           }
@@ -92,7 +92,7 @@ pipeline {
           }
         }
 
-        stage('Pruebas de seguridad') {
+        stage('Seguridad') {
           steps {
             sh 'pnpm test:seguridad --reporter=default --reporter=junit --outputFile.junit=reports/seguridad.xml'
             // Production dependencies only: dev tooling never reaches Vercel.
@@ -106,7 +106,7 @@ pipeline {
         // The compiled app, served by `next start`, against the API deployed on
         // Render. The lock keeps this job and the API job from sharing the login
         // rate limit at the same time.
-        stage('Pruebas automatizadas (Screenplay + Serenity)') {
+        stage('Screenplay + Serenity') {
           options { lock('render-api') }
           steps {
             withCredentials(ciAccounts()) {
@@ -135,7 +135,7 @@ pipeline {
 
         // The same Screenplay tasks, driven by the Spanish .feature files in
         // e2e/features through Cucumber.
-        stage('Escenarios Gherkin (Cucumber + Screenplay)') {
+        stage('Gherkin (Cucumber + Screenplay)') {
           options { lock('render-api') }
           steps {
             withCredentials(ciAccounts()) {
@@ -164,7 +164,7 @@ pipeline {
       }
     }
 
-    stage('Pruebas E2E') {
+    stage('Pruebas E2E: Playwright') {
       options { lock('render-api') }
       steps {
         withCredentials(ciAccounts()) {
@@ -181,7 +181,7 @@ pipeline {
 
     // Flows, API, security and accessibility of the six requirements. Cypress
     // takes its login slots from the same budget file as the Playwright suites.
-    stage('Pruebas E2E (Cypress)') {
+    stage('Pruebas E2E: Cypress') {
       options { lock('render-api') }
       steps {
         withCredentials(ciAccounts()) {
@@ -204,7 +204,7 @@ pipeline {
     }
 
     // Recorded steps, no model: deterministic, so it gates like the suites above.
-    stage('Selenium IDE (grabación y reproducción)') {
+    stage('Pruebas de regresión: Selenium IDE (grabación y reproducción)') {
       options { lock('render-api') }
       steps {
         script { env.CHROME_PATH = chromium() }

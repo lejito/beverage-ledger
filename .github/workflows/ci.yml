@@ -83,7 +83,7 @@ jobs:
           retention-days: 1
 
   functional:
-    name: Pruebas de regresión · Pruebas funcionales
+    name: 'Pruebas de regresión: Funcionales'
     needs: build
     runs-on: ubuntu-latest
     env:
@@ -101,7 +101,7 @@ jobs:
           retention-days: 7
 
   security:
-    name: Pruebas de regresión · Pruebas de seguridad
+    name: 'Pruebas de regresión: Seguridad'
     needs: functional
     runs-on: ubuntu-latest
     env:
@@ -118,7 +118,7 @@ jobs:
   # The compiled app against the API deployed on Render, through dedicated CI
   # accounts. One run at a time: every browser suite shares the login rate limit.
   screenplay:
-    name: Pruebas de regresión · Pruebas automatizadas (Screenplay + Serenity)
+    name: 'Pruebas de regresión: Screenplay + Serenity'
     needs: security
     runs-on: ubuntu-latest
     concurrency: { group: render-api, cancel-in-progress: false }
@@ -160,7 +160,7 @@ jobs:
   # The same Screenplay tasks, driven by the Spanish .feature files in
   # e2e/features through Cucumber.
   gherkin:
-    name: Pruebas de regresión · Escenarios Gherkin (Cucumber + Screenplay)
+    name: 'Pruebas de regresión: Gherkin (Cucumber + Screenplay)'
     needs: screenplay
     runs-on: ubuntu-latest
     concurrency: { group: render-api, cancel-in-progress: false }
@@ -191,7 +191,7 @@ jobs:
           retention-days: 14
 
   e2e:
-    name: Pruebas E2E
+    name: 'Pruebas E2E: Playwright'
     needs: gherkin
     runs-on: ubuntu-latest
     concurrency: { group: render-api, cancel-in-progress: false }
@@ -218,7 +218,7 @@ jobs:
           retention-days: 14
 
   cypress:
-    name: Pruebas E2E (Cypress)
+    name: 'Pruebas E2E: Cypress'
     needs: e2e
     runs-on: ubuntu-latest
     concurrency: { group: render-api, cancel-in-progress: false }
@@ -247,7 +247,7 @@ jobs:
 
   # Recorded steps, no model: deterministic, so it gates like the suites above.
   selenium:
-    name: Pruebas de regresión · Selenium IDE (grabación y reproducción)
+    name: 'Pruebas de regresión: Selenium IDE (grabación y reproducción)'
     needs: cypress
     runs-on: ubuntu-latest
     concurrency: { group: render-api, cancel-in-progress: false }
@@ -275,7 +275,7 @@ jobs:
   # keeps a flaky inference or a spent quota from turning the run red. They run
   # beside the deploy, so they test what Render serves at that moment.
   stagehand:
-    name: Pruebas con IA · Stagehand (act, observe, extract) · no bloquea
+    name: 'Pruebas con IA: Stagehand (no bloquea)'
     needs: selenium
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -323,7 +323,7 @@ jobs:
   # After Stagehand rather than beside it: only one job may wait on the render-api
   # group at a time, and GitHub cancels a second one queued behind it.
   cypress-prompt:
-    name: Pruebas con IA · Cypress Cloud (cy.prompt) · no bloquea
+    name: 'Pruebas con IA: cy.prompt (no bloquea)'
     needs: [selenium, stagehand]
     if: ${{ !cancelled() && needs.selenium.result == 'success' }}
     runs-on: ubuntu-latest
