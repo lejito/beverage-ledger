@@ -1,5 +1,4 @@
-import { PageElement, PageElements, By, Page, Text } from '@serenity-js/web';
-import { includes } from '@serenity-js/assertions';
+import { PageElement, PageElements, By, Page } from '@serenity-js/web';
 
 /** A form control found by the text of its <label>, as a person finds it. */
 export const Campo = (etiqueta: string) =>
@@ -29,11 +28,16 @@ export const Notificacion = (titulo: string) =>
     `el aviso «${titulo}»`,
   );
 
-/** The table row that mentions a text, such as a member's email. */
+/**
+ * The first table row that mentions a text, such as a member's email: on the
+ * users screen the same email is also in the invitations table below. One
+ * locator Playwright resolves on every check, not a read of every row's text:
+ * rows re-render while a search settles, and asking for the text of a row
+ * position that is gone waits with no timeout, past any Wait.upTo.
+ */
 export const FilaCon = (texto: string) =>
-  PageElements.located(By.role('row'))
-    .where(Text, includes(texto))
-    .first()
-    .describedAs(`la fila de «${texto}»`);
+  PageElement.located(
+    By.css(`:nth-match(tbody tr:has-text("${texto.replaceAll('"', '\\"')}"), 1)`),
+  ).describedAs(`la fila de «${texto}»`);
 
 export const RutaActual = () => Page.current().url().pathname.describedAs('la ruta actual');
