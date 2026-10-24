@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "incremental": false,
+    "types": ["cypress", "node", "@testing-library/cypress", "cypress-axe"],
+    "isolatedModules": false
+  },
+  "include": ["**/*.ts", "../src/i18n/messages/*.json"],
+  "exclude": []
+}
