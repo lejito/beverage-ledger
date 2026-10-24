@@ -69,6 +69,12 @@ const eslintConfig = [
     },
   },
 
+  // Chai's property assertions (`.to.be.null`, `.to.exist`) are expressions.
+  {
+    files: ['cypress/**/*.ts'],
+    rules: { '@typescript-eslint/no-unused-expressions': 'off' },
+  },
+
   // Last: turns off stylistic rules that collide with the formatter.
   ...compat.extends('prettier'),
 ];

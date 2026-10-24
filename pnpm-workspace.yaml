@@ -6,12 +6,17 @@
 # pass without it. Listing them as ignored records that the decision was made
 # deliberately instead of leaving a warning on every install.
 #
-# @parcel/watcher and @swc/core arrived with next-intl's compiler plugin.
+# @parcel/watcher and @swc/core arrived with next-intl's compiler plugin, esbuild
+# with tsx. Cypress is the exception to "a fallback": its script downloads the
+# app binary, which `pnpm exec cypress install` fetches on purpose where the
+# suite runs, so a plain install never reaches out to Cypress's servers.
 onlyBuiltDependencies: []
 
 ignoredBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'
+  - cypress
+  - esbuild
   - unrs-resolver
 
 # Refuse packages published less than 24h ago. Compromised versions are usually
