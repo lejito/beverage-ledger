@@ -224,7 +224,7 @@ pipeline {
     // but never gate: catchError marks the stage and keeps the build green. Here
     // and not after the deploy, whose `vercel build` rewrites .next with Vercel's
     // environment, so they would serve a build other than the one tested.
-    stage('Pruebas con IA (no bloquean)') {
+    stage('Pruebas con IA') {
       options { lock('render-api') }
       stages {
         stage('Stagehand (act, observe, extract)') {

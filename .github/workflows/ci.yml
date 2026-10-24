@@ -275,7 +275,7 @@ jobs:
   # keeps a flaky inference or a spent quota from turning the run red. They run
   # beside the deploy, so they test what Render serves at that moment.
   stagehand:
-    name: 'Pruebas con IA: Stagehand (no bloquea)'
+    name: 'Pruebas con IA: Stagehand'
     needs: selenium
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -323,7 +323,7 @@ jobs:
   # After Stagehand rather than beside it: only one job may wait on the render-api
   # group at a time, and GitHub cancels a second one queued behind it.
   cypress-prompt:
-    name: 'Pruebas con IA: cy.prompt (no bloquea)'
+    name: 'Pruebas con IA: cy.prompt'
     needs: [selenium, stagehand]
     if: ${{ !cancelled() && needs.selenium.result == 'success' }}
     runs-on: ubuntu-latest
