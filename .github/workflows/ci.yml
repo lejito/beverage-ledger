@@ -157,9 +157,42 @@ jobs:
           path: target/site/serenity
           retention-days: 14
 
+  # The same Screenplay tasks, driven by the Spanish .feature files in
+  # e2e/features through Cucumber.
+  gherkin:
+    name: Pruebas de regresión · Escenarios Gherkin (Cucumber + Screenplay)
+    needs: screenplay
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Navegador
+        run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/serve
+      - name: Escenarios Gherkin
+        run: pnpm test:gherkin
+      - name: Reporte de Serenity BDD
+        if: always()
+        run: pnpm test:gherkin:report
+      - name: Guardar el reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: serenity-bdd-gherkin
+          path: |
+            target/site/serenity-gherkin
+            reports/gherkin.xml
+          retention-days: 14
+
   e2e:
     name: Pruebas E2E
-    needs: screenplay
+    needs: gherkin
     runs-on: ubuntu-latest
     concurrency: { group: render-api, cancel-in-progress: false }
     env: *browser-suites
@@ -184,9 +217,165 @@ jobs:
             test-results
           retention-days: 14
 
+  cypress:
+    name: Pruebas E2E (Cypress)
+    needs: e2e
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # pnpm does not run Cypress's postinstall (pnpm-workspace.yaml), so the app
+      # binary is fetched here, once per version.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Binario de Cypress
+        run: pnpm exec cypress install
+      - uses: ./.github/actions/serve
+      - name: Pruebas E2E, API, seguridad y accesibilidad
+        run: pnpm test:cypress
+      - name: Guardar el reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress
+          path: reports/cypress
+          retention-days: 14
+
+  # Recorded steps, no model: deterministic, so it gates like the suites above.
+  selenium:
+    name: Pruebas de regresión · Selenium IDE (grabación y reproducción)
+    needs: cypress
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/serve
+      # Chrome comes with the runner; Selenium Manager fetches the matching driver.
+      - name: Proyecto de Selenium IDE
+        run: pnpm test:selenium
+      - name: Guardar el reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-ide
+          # The filled-in copy of the project carries the credentials: only the results.
+          path: |
+            reports/selenium/*.json
+            reports/selenium/screenshots
+          retention-days: 14
+
+  # The model-driven suites run on every push and leave their evidence in this
+  # run, but never gate: no job below them waits on them, and continue-on-error
+  # keeps a flaky inference or a spent quota from turning the run red. They run
+  # beside the deploy, so they test what Render serves at that moment.
+  stagehand:
+    name: Pruebas con IA · Stagehand (act, observe, extract) · no bloquea
+    needs: selenium
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - name: Comprobar la clave del modelo
+        id: key
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_GENERATIVE_AI_API_KEY" ]; then
+            echo "::warning::GOOGLE_GENERATIVE_AI_API_KEY no está en los secrets: Stagehand no corre."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+      - uses: ./.github/actions/setup
+        if: steps.key.outputs.ready == 'true'
+      - uses: actions/download-artifact@v4
+        if: steps.key.outputs.ready == 'true'
+        with:
+          name: next-build
+          path: .next
+      # Stagehand launches the runner's Google Chrome itself, through its extension.
+      - name: Pruebas con Stagehand
+        if: steps.key.outputs.ready == 'true'
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          STAGEHAND_MODEL: ${{ vars.STAGEHAND_MODEL || 'google/gemini-2.5-flash' }}
+        run: pnpm test:stagehand
+      - name: Guardar el reporte
+        if: always() && steps.key.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagehand
+          path: |
+            reports/stagehand
+            reports/stagehand.xml
+            test-results
+          retention-days: 14
+
+  # After Stagehand rather than beside it: only one job may wait on the render-api
+  # group at a time, and GitHub cancels a second one queued behind it.
+  cypress-prompt:
+    name: Pruebas con IA · Cypress Cloud (cy.prompt) · no bloquea
+    needs: [selenium, stagehand]
+    if: ${{ !cancelled() && needs.selenium.result == 'success' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - name: Comprobar el proyecto de Cypress Cloud
+        id: cloud
+        env:
+          CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+        run: |
+          if [ -z "$CYPRESS_PROJECT_ID" ] || [ -z "$CYPRESS_RECORD_KEY" ]; then
+            echo "::warning::Faltan vars.CYPRESS_PROJECT_ID o secrets.CYPRESS_RECORD_KEY: cy.prompt no corre."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cloud.outputs.ready == 'true'
+      - uses: ./.github/actions/setup
+        if: steps.cloud.outputs.ready == 'true'
+      - uses: actions/cache@v4
+        if: steps.cloud.outputs.ready == 'true'
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Binario de Cypress
+        if: steps.cloud.outputs.ready == 'true'
+        run: pnpm exec cypress install
+      - uses: ./.github/actions/serve
+        if: steps.cloud.outputs.ready == 'true'
+      # --record sends the run to Cypress Cloud, where cy.prompt resolves the steps
+      # and the recording, screenshots and video are kept as evidence.
+      - name: Pruebas con cy.prompt
+        if: steps.cloud.outputs.ready == 'true'
+        env:
+          CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+        run: pnpm test:cypress:prompt
+      - name: Guardar el reporte
+        if: always() && steps.cloud.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-prompt
+          path: reports/cypress-prompt
+          retention-days: 14
+
   quality:
     name: Calidad (SonarQube Cloud)
-    needs: e2e
+    needs: selenium
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

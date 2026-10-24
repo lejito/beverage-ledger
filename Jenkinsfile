@@ -7,6 +7,25 @@ def ciAccounts() {
   ]
 }
 
+// Cucumber and Cypress do not start the app the way Playwright's webServer does.
+// Served in the same sh step as the suite: Jenkins kills what a step leaves
+// behind, so a server started in a step of its own would be gone by the next.
+def withApp(String command) {
+  sh """
+    pnpm start > next-start.log 2>&1 &
+    app=\$!
+    trap 'kill \$app 2>/dev/null || true' EXIT
+    timeout 120 sh -c 'until curl -sf -o /dev/null http://localhost:3000/login; do sleep 2; done'
+    ${command}
+  """
+}
+
+// The image carries no Google Chrome: Selenium IDE, Stagehand and cy.prompt
+// drive the Chromium that Playwright downloads into PLAYWRIGHT_BROWSERS_PATH.
+def chromium() {
+  return sh(script: "node -e \"process.stdout.write(require('playwright-core').chromium.executablePath())\"", returnStdout: true)
+}
+
 pipeline {
   agent any
 
@@ -14,7 +33,7 @@ pipeline {
     timestamps()
     // The browser suites pace their logins to the API's rate limit, which is
     // most of their running time.
-    timeout(time: 60, unit: 'MINUTES')
+    timeout(time: 90, unit: 'MINUTES')
     disableConcurrentBuilds()
     buildDiscarder(logRotator(numToKeepStr: '20'))
   }
@@ -35,6 +54,9 @@ pipeline {
         // The browser lives in PLAYWRIGHT_BROWSERS_PATH, on the Jenkins volume,
         // so after the first build this only checks it is already there.
         sh 'pnpm exec playwright install chromium'
+        // pnpm runs no install scripts (pnpm-workspace.yaml), Cypress's download
+        // of its app included. It lands in ~/.cache/Cypress, on the same volume.
+        sh 'pnpm exec cypress install'
       }
     }
 
@@ -110,6 +132,32 @@ pipeline {
             }
           }
         }
+
+        // The same Screenplay tasks, driven by the Spanish .feature files in
+        // e2e/features through Cucumber.
+        stage('Escenarios Gherkin (Cucumber + Screenplay)') {
+          options { lock('render-api') }
+          steps {
+            withCredentials(ciAccounts()) {
+              withApp('pnpm test:gherkin')
+            }
+          }
+          post {
+            always {
+              junit allowEmptyResults: true, testResults: 'reports/gherkin.xml'
+              sh 'pnpm test:gherkin:report || true'
+              archiveArtifacts artifacts: 'target/site/serenity-gherkin/**', allowEmptyArchive: true
+              publishHTML(target: [
+                reportName: 'Serenity BDD (Gherkin)',
+                reportDir: 'target/site/serenity-gherkin',
+                reportFiles: 'index.html',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: true
+              ])
+            }
+          }
+        }
       }
       post {
         always { archiveArtifacts artifacts: 'coverage/*/lcov.info', allowEmptyArchive: true }
@@ -127,6 +175,103 @@ pipeline {
         always {
           junit allowEmptyResults: true, testResults: 'reports/e2e.xml'
           archiveArtifacts artifacts: 'reports/e2e/**, test-results/**', allowEmptyArchive: true
+        }
+      }
+    }
+
+    // Flows, API, security and accessibility of the six requirements. Cypress
+    // takes its login slots from the same budget file as the Playwright suites.
+    stage('Pruebas E2E (Cypress)') {
+      options { lock('render-api') }
+      steps {
+        withCredentials(ciAccounts()) {
+          withApp('pnpm test:cypress')
+        }
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/cypress/**', allowEmptyArchive: true
+          publishHTML(target: [
+            reportName: 'Cypress (Mochawesome)',
+            reportDir: 'reports/cypress',
+            reportFiles: 'index.html',
+            keepAll: true,
+            alwaysLinkToLastBuild: true,
+            allowMissing: true
+          ])
+        }
+      }
+    }
+
+    // Recorded steps, no model: deterministic, so it gates like the suites above.
+    stage('Selenium IDE (grabación y reproducción)') {
+      options { lock('render-api') }
+      steps {
+        script { env.CHROME_PATH = chromium() }
+        withCredentials(ciAccounts()) {
+          withApp('pnpm test:selenium')
+        }
+      }
+      post {
+        // The filled-in copy of the project carries the credentials: only the results.
+        always {
+          archiveArtifacts artifacts: 'reports/selenium/*.json, reports/selenium/screenshots/**', allowEmptyArchive: true
+        }
+      }
+    }
+
+    // The model-driven suites run on every build and leave their evidence in it,
+    // but never gate: catchError marks the stage and keeps the build green. Here
+    // and not after the deploy, whose `vercel build` rewrites .next with Vercel's
+    // environment, so they would serve a build other than the one tested.
+    stage('Pruebas con IA (no bloquean)') {
+      options { lock('render-api') }
+      stages {
+        stage('Stagehand (act, observe, extract)') {
+          steps {
+            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+              withCredentials(ciAccounts() + [string(credentialsId: 'google-generative-ai-api-key', variable: 'GOOGLE_GENERATIVE_AI_API_KEY')]) {
+                script {
+                  if (env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()) {
+                    sh 'pnpm test:stagehand'
+                  } else {
+                    echo 'GOOGLE_GENERATIVE_AI_API_KEY está vacía: Stagehand no corre.'
+                  }
+                }
+              }
+            }
+          }
+          post {
+            always {
+              junit allowEmptyResults: true, testResults: 'reports/stagehand.xml'
+              archiveArtifacts artifacts: 'reports/stagehand/**', allowEmptyArchive: true
+            }
+          }
+        }
+
+        stage('Cypress Cloud (cy.prompt)') {
+          steps {
+            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+              withCredentials(ciAccounts() + [
+                string(credentialsId: 'cypress-project-id', variable: 'CYPRESS_PROJECT_ID'),
+                string(credentialsId: 'cypress-record-key', variable: 'CYPRESS_RECORD_KEY')
+              ]) {
+                script {
+                  if (env.CYPRESS_PROJECT_ID?.trim() && env.CYPRESS_RECORD_KEY?.trim()) {
+                    // --browser takes a path as well as a name: cy.prompt needs Chromium.
+                    withApp('pnpm exec cypress run --config-file cypress.prompt.config.ts --record --browser "$CHROME_PATH"')
+                  } else {
+                    echo 'Falta el proyecto de Cypress Cloud: cy.prompt no corre.'
+                  }
+                }
+              }
+            }
+          }
+          post {
+            always {
+              archiveArtifacts artifacts: 'reports/cypress-prompt/**', allowEmptyArchive: true
+            }
+          }
         }
       }
     }

@@ -1,0 +1,19 @@
+name: Serve
+description: >
+  The build uploaded by the build job, served by `next start` on :3000 for the
+  suites that do not start it themselves (Cypress, Cucumber, Selenium IDE).
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: next-build
+        path: .next
+
+    # A process left in the background keeps running for the rest of the job.
+    - name: Servir la compilación
+      shell: bash
+      run: |
+        nohup pnpm start > next-start.log 2>&1 &
+        timeout 120 bash -c 'until curl -sf -o /dev/null http://localhost:3000/login; do sleep 2; done'

@@ -1,0 +1,161 @@
+name: Pruebas con IA
+
+# The same three suites also run in CI/CD on every push (Selenium IDE gating,
+# Stagehand and cy.prompt not). This one is by hand only, to regenerate their
+# evidence without a push, against the API deployed on Render.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+# Chained with `needs` so that only one of them waits on the render-api group at
+# a time: GitHub cancels a pending job when a second one queues behind it.
+# `!cancelled()` lets each run even when the one before it failed.
+jobs:
+  build:
+    name: Compilación
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Compilación
+        run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next
+          include-hidden-files: true
+          retention-days: 1
+
+  stagehand:
+    name: Stagehand (act, observe, extract)
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: &browser-suites
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      CI_ADMIN_EMAIL: ${{ secrets.CI_ADMIN_EMAIL }}
+      CI_ADMIN_PASSWORD: ${{ secrets.CI_ADMIN_PASSWORD }}
+      CI_MANAGER_EMAIL: ${{ secrets.CI_MANAGER_EMAIL }}
+      CI_MANAGER_PASSWORD: ${{ secrets.CI_MANAGER_PASSWORD }}
+      CI_OPERATOR_EMAIL: ${{ secrets.CI_OPERATOR_EMAIL }}
+      CI_OPERATOR_PASSWORD: ${{ secrets.CI_OPERATOR_PASSWORD }}
+    steps:
+      - name: Comprobar la clave del modelo
+        id: key
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_GENERATIVE_AI_API_KEY" ]; then
+            echo "::warning::GOOGLE_GENERATIVE_AI_API_KEY no está en los secrets: Stagehand no corre."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+      - uses: ./.github/actions/setup
+        if: steps.key.outputs.ready == 'true'
+      - uses: actions/download-artifact@v4
+        if: steps.key.outputs.ready == 'true'
+        with:
+          name: next-build
+          path: .next
+      # Stagehand launches the runner's Google Chrome itself, through its extension.
+      - name: Pruebas con Stagehand
+        if: steps.key.outputs.ready == 'true'
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          STAGEHAND_MODEL: ${{ vars.STAGEHAND_MODEL || 'google/gemini-2.5-flash' }}
+        run: pnpm test:stagehand
+      - name: Guardar el reporte
+        if: always() && steps.key.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stagehand
+          path: |
+            reports/stagehand
+            reports/stagehand.xml
+            test-results
+          retention-days: 14
+
+  selenium:
+    name: Selenium IDE (grabación y reproducción)
+    needs: [build, stagehand]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/serve
+      # Chrome comes with the runner; Selenium Manager fetches the matching driver.
+      - name: Proyecto de Selenium IDE
+        run: pnpm test:selenium
+      - name: Guardar el reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-ide
+          # The filled-in copy of the project carries the credentials: only the results.
+          path: |
+            reports/selenium/*.json
+            reports/selenium/screenshots
+          retention-days: 14
+
+  cypress-prompt:
+    name: Cypress Cloud (cy.prompt)
+    needs: [build, selenium]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    concurrency: { group: render-api, cancel-in-progress: false }
+    env: *browser-suites
+    steps:
+      - name: Comprobar el proyecto de Cypress Cloud
+        id: cloud
+        env:
+          CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+        run: |
+          if [ -z "$CYPRESS_PROJECT_ID" ] || [ -z "$CYPRESS_RECORD_KEY" ]; then
+            echo "::warning::Faltan vars.CYPRESS_PROJECT_ID o secrets.CYPRESS_RECORD_KEY: cy.prompt no corre."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cloud.outputs.ready == 'true'
+      - uses: ./.github/actions/setup
+        if: steps.cloud.outputs.ready == 'true'
+      - uses: actions/cache@v4
+        if: steps.cloud.outputs.ready == 'true'
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Binario de Cypress
+        if: steps.cloud.outputs.ready == 'true'
+        run: pnpm exec cypress install
+      - uses: ./.github/actions/serve
+        if: steps.cloud.outputs.ready == 'true'
+      # --record sends the run to Cypress Cloud, where cy.prompt resolves the steps
+      # and the recording, screenshots and video are kept as evidence.
+      - name: Pruebas con cy.prompt
+        if: steps.cloud.outputs.ready == 'true'
+        env:
+          CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+        run: pnpm test:cypress:prompt
+      - name: Guardar el reporte
+        if: always() && steps.cloud.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-prompt
+          path: reports/cypress-prompt
+          retention-days: 14

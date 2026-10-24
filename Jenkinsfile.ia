@@ -1,0 +1,128 @@
+// The AI-assisted suites of the web app by hand, to regenerate their evidence
+// without a build. The Jenkinsfile also runs them on every build (Selenium IDE
+// gating, the other two not). Same suites as .github/workflows/ia.yml.
+def ciAccounts() {
+  return [
+    usernamePassword(credentialsId: 'ci-admin', usernameVariable: 'CI_ADMIN_EMAIL', passwordVariable: 'CI_ADMIN_PASSWORD'),
+    usernamePassword(credentialsId: 'ci-manager', usernameVariable: 'CI_MANAGER_EMAIL', passwordVariable: 'CI_MANAGER_PASSWORD'),
+    usernamePassword(credentialsId: 'ci-operator', usernameVariable: 'CI_OPERATOR_EMAIL', passwordVariable: 'CI_OPERATOR_PASSWORD')
+  ]
+}
+
+// Same as in the Jenkinsfile: served in the step that runs the suite.
+def withApp(String command) {
+  sh """
+    pnpm start > next-start.log 2>&1 &
+    app=\$!
+    trap 'kill \$app 2>/dev/null || true' EXIT
+    timeout 120 sh -c 'until curl -sf -o /dev/null http://localhost:3000/login; do sleep 2; done'
+    ${command}
+  """
+}
+
+// The image carries no Google Chrome: every suite here drives the Chromium that
+// Playwright downloads into PLAYWRIGHT_BROWSERS_PATH.
+def chromium() {
+  return sh(script: "node -e \"process.stdout.write(require('playwright-core').chromium.executablePath())\"", returnStdout: true)
+}
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    timeout(time: 60, unit: 'MINUTES')
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+  }
+
+  environment {
+    NEXT_PUBLIC_API_URL = credentials('next-public-api-url')
+    CI = 'true'
+    NEXT_TELEMETRY_DISABLED = '1'
+  }
+
+  stages {
+    stage('Instalación y compilación') {
+      steps {
+        sh 'pnpm install --frozen-lockfile'
+        sh 'pnpm exec playwright install chromium'
+        sh 'pnpm exec cypress install'
+        sh 'pnpm build'
+        script { env.CHROME_PATH = chromium() }
+      }
+    }
+
+    // catchError: a failing suite marks the build unstable and the next still runs.
+    stage('Stagehand (act, observe, extract)') {
+      options { lock('render-api') }
+      steps {
+        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+          withCredentials(ciAccounts() + [string(credentialsId: 'google-generative-ai-api-key', variable: 'GOOGLE_GENERATIVE_AI_API_KEY')]) {
+            script {
+              if (!env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()) {
+                unstable('GOOGLE_GENERATIVE_AI_API_KEY está vacía: Stagehand no corre.')
+              } else {
+                // STAGEHAND_MODEL, when set on the controller, picks another model.
+                sh 'pnpm test:stagehand'
+              }
+            }
+          }
+        }
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'reports/stagehand.xml'
+          archiveArtifacts artifacts: 'reports/stagehand/**, test-results/**', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Selenium IDE (grabación y reproducción)') {
+      options { lock('render-api') }
+      steps {
+        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+          withCredentials(ciAccounts()) {
+            withApp('pnpm test:selenium')
+          }
+        }
+      }
+      post {
+        // The filled-in copy of the project carries the credentials: only the results.
+        always {
+          archiveArtifacts artifacts: 'reports/selenium/*.json, reports/selenium/screenshots/**', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Cypress Cloud (cy.prompt)') {
+      options { lock('render-api') }
+      steps {
+        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+          withCredentials(ciAccounts() + [
+            string(credentialsId: 'cypress-project-id', variable: 'CYPRESS_PROJECT_ID'),
+            string(credentialsId: 'cypress-record-key', variable: 'CYPRESS_RECORD_KEY')
+          ]) {
+            script {
+              if (!env.CYPRESS_PROJECT_ID?.trim() || !env.CYPRESS_RECORD_KEY?.trim()) {
+                unstable('Falta el proyecto de Cypress Cloud: cy.prompt no corre.')
+              } else {
+                // --browser takes a path as well as a name: cy.prompt needs Chromium.
+                withApp('pnpm exec cypress run --config-file cypress.prompt.config.ts --record --browser "$CHROME_PATH"')
+              }
+            }
+          }
+        }
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/cypress-prompt/**', allowEmptyArchive: true
+        }
+      }
+    }
+  }
+
+  post {
+    cleanup { cleanWs() }
+  }
+}
