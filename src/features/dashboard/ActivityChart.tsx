@@ -93,7 +93,7 @@ export function ActivityChart({
             {t(series.label)}
           </span>
         ))}
-        <span className="ml-auto text-xs text-contrast/50">{t('peak', { count: max })}</span>
+        <span className="ml-auto text-xs text-contrast/70">{t('peak', { count: max })}</span>
       </div>
 
       <div className="relative">
@@ -192,7 +192,7 @@ export function ActivityChart({
       </div>
 
       {first && last && (
-        <div className="flex justify-between text-xs text-contrast/50">
+        <div className="flex justify-between text-xs text-contrast/70">
           <span>{labelFor(first.period)}</span>
           <span>{labelFor(last.period)}</span>
         </div>

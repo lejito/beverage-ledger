@@ -1,13 +1,15 @@
 import type { ComponentPropsWithRef } from 'react';
 import { cn } from '@/lib/utils';
 
+// The coloured tones print their text at full strength: at text-xs, /80 over its
+// own tint fell below WCAG AA contrast (axe, on the users and audit screens).
 const toneStyles = {
   neutral: 'bg-contrast/10 text-contrast/80 border-contrast/20',
-  accent: 'bg-accent/10 text-accent/80 border-accent/20',
-  info: 'bg-info/10 text-info/80 border-info/20',
-  success: 'bg-success/10 text-success/80 border-success/20',
-  warning: 'bg-warning/10 text-warning/80 border-warning/20',
-  danger: 'bg-danger/10 text-danger/80 border-danger/20',
+  accent: 'bg-accent/10 text-accent border-accent/20',
+  info: 'bg-info/10 text-info border-info/20',
+  success: 'bg-success/10 text-success border-success/20',
+  warning: 'bg-warning/10 text-warning border-warning/20',
+  danger: 'bg-danger/10 text-danger border-danger/20',
 } as const;
 
 export interface BadgeProps extends ComponentPropsWithRef<'span'> {

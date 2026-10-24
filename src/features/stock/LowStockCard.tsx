@@ -49,13 +49,13 @@ export function LowStockCard({ enabled = true }: Readonly<{ enabled?: boolean }>
               >
                 {row.productName}
               </Link>
-              <p className="truncate text-xs text-contrast/50">{row.categoryName}</p>
+              <p className="truncate text-xs text-contrast/70">{row.categoryName}</p>
             </div>
 
             <div className="flex shrink-0 items-center gap-3">
               <span className="text-sm text-contrast/70">
                 {format.number(row.quantityBase)} / {format.number(row.minimumStock ?? 0)}{' '}
-                <span className="text-xs text-contrast/50">
+                <span className="text-xs text-contrast/70">
                   {tUnits('unit', { count: row.quantityBase })}
                 </span>
               </span>

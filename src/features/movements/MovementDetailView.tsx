@@ -251,7 +251,7 @@ export function MovementDetailView({ id }: Readonly<{ id: string }>) {
               <div className="min-w-0 space-y-1">
                 <p className="font-medium text-contrast">{item.productNameSnapshot}</p>
                 {item.brandNameSnapshot && (
-                  <p className="text-xs text-accent/70">{item.brandNameSnapshot}</p>
+                  <p className="text-xs text-accent">{item.brandNameSnapshot}</p>
                 )}
                 <p className="text-xs text-contrast/50">
                   {t('baseUnits', { count: item.quantityBase })}

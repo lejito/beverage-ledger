@@ -39,7 +39,7 @@ function MemberCell({ user, isSelf, t }: Readonly<{ user: User; isSelf: boolean;
     <div className="min-w-0 space-y-0.5">
       <p className="font-medium text-foreground">
         {user.name}
-        {isSelf && <span className="ml-2 text-xs font-normal text-contrast/50">{t('you')}</span>}
+        {isSelf && <span className="ml-2 text-xs font-normal text-contrast/70">{t('you')}</span>}
       </p>
       <p className="truncate text-xs text-contrast/60">{user.email}</p>
     </div>

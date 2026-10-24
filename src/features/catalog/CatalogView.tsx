@@ -55,7 +55,7 @@ function renderProductCell(product: Product, tNoBrand: string) {
       >
         {product.name}
       </Link>
-      <p className="text-xs text-accent/70">{product.brand?.name ?? tNoBrand}</p>
+      <p className="text-xs text-accent">{product.brand?.name ?? tNoBrand}</p>
     </div>
   );
 }

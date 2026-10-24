@@ -29,7 +29,7 @@ export function StatTile({
     <Card className={cn('space-y-1 bg-contrast/5 text-center', className)}>
       <p className={cn('text-2xl font-light', toneStyles[tone])}>{value}</p>
       <p className="text-xs uppercase tracking-wider text-contrast/60">{label}</p>
-      {hint && <p className="text-xs text-contrast/50">{hint}</p>}
+      {hint && <p className="text-xs text-contrast/70">{hint}</p>}
     </Card>
   );
 }

@@ -49,7 +49,7 @@ export function RecentMovementsCard({ enabled = true }: Readonly<{ enabled?: boo
                 <MovementStatusBadge status={movement.status} />
               </div>
             </div>
-            <p className="mt-1 truncate text-xs text-contrast/50">
+            <p className="mt-1 truncate text-xs text-contrast/70">
               {format.dateTime(new Date(movement.occurredAt), 'full')} · {movement.itemCount}{' '}
               {tUnits('line', { count: movement.itemCount })} · {movement.createdBy.name}
             </p>

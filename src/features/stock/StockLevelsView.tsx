@@ -30,7 +30,7 @@ function ProductCell({ row }: Readonly<{ row: StockLevel }>) {
       >
         {row.productName}
       </Link>
-      {row.brandName && <p className="text-xs text-accent/70">{row.brandName}</p>}
+      {row.brandName && <p className="text-xs text-accent">{row.brandName}</p>}
     </div>
   );
 }

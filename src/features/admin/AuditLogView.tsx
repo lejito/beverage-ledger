@@ -53,10 +53,10 @@ function renderWhoCell(log: AuditLog, t: ReturnType<typeof useTranslations<'admi
   return log.user ? (
     <div className="min-w-0 space-y-0.5">
       <p className="text-foreground">{log.user.name}</p>
-      <p className="truncate text-xs text-contrast/50">{log.user.email}</p>
+      <p className="truncate text-xs text-contrast/70">{log.user.email}</p>
     </div>
   ) : (
-    <span className="text-xs text-contrast/50">{t('system')}</span>
+    <span className="text-xs text-contrast/70">{t('system')}</span>
   );
 }
 
@@ -73,7 +73,7 @@ function renderEntityCell(log: AuditLog, t: ReturnType<typeof useTranslations<'a
     <div className="min-w-0 space-y-0.5">
       <p className="text-contrast/70">{t(`entities.${log.entity}`)}</p>
       {log.entityId && (
-        <p className="truncate font-mono text-xs text-contrast/40">{log.entityId}</p>
+        <p className="truncate font-mono text-xs text-contrast/70">{log.entityId}</p>
       )}
     </div>
   );
@@ -85,7 +85,7 @@ function renderMetadataCell(log: AuditLog) {
 
 function renderIpCell(log: AuditLog, tStates: ReturnType<typeof useTranslations<'common.states'>>) {
   return (
-    <span className="font-mono text-xs text-contrast/50">{log.ipAddress ?? tStates('none')}</span>
+    <span className="font-mono text-xs text-contrast/70">{log.ipAddress ?? tStates('none')}</span>
   );
 }
 
