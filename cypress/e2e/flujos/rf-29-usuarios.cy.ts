@@ -4,15 +4,28 @@ const textos = messages.admin.users;
 
 /**
  * The row of a member, on whichever page of the list it is: the deployed
- * database grows with every run, so nothing stays on page one.
+ * database grows with every run, so nothing stays on page one. The search starts
+ * from page one because the tests share the page, and the member may sit before
+ * wherever the previous test left the list.
  */
 const filaDe = (email: string) => {
+  const paginacion = () =>
+    cy.findAllByRole('navigation', { name: messages.common.pagination.label }).first();
   const siguiente = () =>
-    cy
-      .findAllByRole('navigation', { name: messages.common.pagination.label })
-      .first()
+    paginacion()
       .findAllByRole('button', { name: messages.common.pagination.next })
       .filter(':visible');
+  const primeraPagina = messages.common.pagination.goToPage.replace('{page}', '1');
+  const alPrincipio = () =>
+    cy.get('body').then(($body) => {
+      const primera = $body
+        .find(`nav[aria-label="${messages.common.pagination.label}"]`)
+        .first()
+        .find(`button[aria-label="${primeraPagina}"]:visible`);
+      if (primera.length > 0 && primera.attr('aria-current') !== 'page') {
+        cy.wrap(primera).click();
+      }
+    });
 
   const buscar = (): Cypress.Chainable<JQuery<HTMLElement>> =>
     cy
@@ -30,6 +43,7 @@ const filaDe = (email: string) => {
       });
 
   cy.findAllByRole('row').should('have.length.greaterThan', 1);
+  alPrincipio();
   return buscar();
 };
 
