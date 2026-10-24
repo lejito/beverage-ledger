@@ -273,8 +273,13 @@ export function LocationsView() {
   const isSaving = create.isPending || update.isPending || remove.isPending;
   const locations = data?.data ?? [];
 
+  // Bumped on every opening: a dialog left mounted after Cancel would otherwise
+  // reopen with what was typed into it instead of what is saved.
+  const [opening, setOpening] = useState(0);
+
   const openForm = (location: Location | null) => {
     setEditing(location);
+    setOpening((count) => count + 1);
     setIsFormOpen(true);
   };
 
@@ -388,9 +393,9 @@ export function LocationsView() {
         </Card>
       )}
 
-      {/* Keyed so the dialog seeds itself from whichever row is being edited. */}
+      {/* Keyed by row and by opening, so the dialog seeds itself from what is saved. */}
       <LocationFormDialog
-        key={editing?.id ?? 'new'}
+        key={`${editing?.id ?? 'new'}-${opening}`}
         location={editing}
         isSaving={isSaving}
         open={isFormOpen}

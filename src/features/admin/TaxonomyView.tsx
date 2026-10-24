@@ -439,8 +439,13 @@ export function TaxonomyView({
   const pageStart = (pagination.page - 1) * pagination.pageSize;
   const visible = items.slice(pageStart, pageStart + pagination.pageSize);
 
+  // Bumped on every opening: a dialog left mounted after Cancel would otherwise
+  // reopen with what was typed into it instead of what is saved.
+  const [opening, setOpening] = useState(0);
+
   const openForm = (item: TaxonomyItem | null) => {
     setEditing(item);
+    setOpening((count) => count + 1);
     setIsFormOpen(true);
   };
 
@@ -503,9 +508,9 @@ export function TaxonomyView({
           onPageSizeChange={pagination.setPageSize}
         />
       )}
-      {/* Keyed so the dialog seeds itself from whichever row is being renamed. */}
+      {/* Keyed by row and by opening, so the dialog seeds itself from what is saved. */}
       <TaxonomyFormDialog
-        key={editing?.id ?? 'new'}
+        key={`${editing?.id ?? 'new'}-${opening}`}
         item={editing}
         copy={copy}
         withSortOrder={withSortOrder}

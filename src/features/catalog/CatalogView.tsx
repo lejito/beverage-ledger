@@ -163,8 +163,13 @@ export function CatalogView() {
   const isLoading = isPending || isPlaceholderData || isRefreshing;
   const products = data?.data ?? [];
 
+  // Bumped on every opening: a dialog left mounted after Cancel would otherwise
+  // reopen with what was typed into it instead of what is saved.
+  const [opening, setOpening] = useState(0);
+
   const openForm = (product: Product | null) => {
     setEditing(product);
+    setOpening((count) => count + 1);
     setIsFormOpen(true);
   };
 
@@ -326,9 +331,9 @@ export function CatalogView() {
       )}
 
       {canManage && (
-        // Keyed so the form seeds itself from whichever product is being edited.
+        // Keyed by product and by opening, so the form seeds itself from what is saved.
         <ProductFormDialog
-          key={editing?.id ?? 'new'}
+          key={`${editing?.id ?? 'new'}-${opening}`}
           product={editing}
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
