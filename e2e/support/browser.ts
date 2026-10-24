@@ -113,6 +113,12 @@ export async function newSignedInPage(browser: Browser, credentials: Credentials
  * reported by axe as advice, not as barriers.
  */
 export async function expectAccessible(page: Page): Promise<void> {
+  // Each view fades in: measured mid-animation, text is still translucent and
+  // fails contrast it meets at rest. A screen with no data to wait for, such as
+  // /profile, reaches axe while the fade is still running.
+  await page.waitForFunction(() =>
+    document.getAnimations().every((animation) => animation.playState !== 'running'),
+  );
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
