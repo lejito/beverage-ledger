@@ -160,6 +160,9 @@ export function DataTable<T>({
     <Wrapper
       className={cn('overflow-x-auto', isLoading && 'block', className)}
       aria-busy={isLoading || undefined}
+      // A wide table scrolls sideways, and a keyboard can only scroll what it
+      // can focus: a named region in the tab order (WCAG 2.1.1).
+      {...(!isLoading && { role: 'region', 'aria-label': caption, tabIndex: 0 })}
     >
       {/* Fixed layout on a phone, automatic from `sm` up.
 
