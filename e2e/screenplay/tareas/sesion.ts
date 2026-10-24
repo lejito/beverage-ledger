@@ -1,4 +1,4 @@
-import { Duration, Interaction, Task, Wait } from '@serenity-js/core';
+import { Duration, Interaction, Masked, Task, Wait } from '@serenity-js/core';
 import { endsWith } from '@serenity-js/assertions';
 import { BrowseTheWebWithPlaywright, type PlaywrightPage } from '@serenity-js/playwright';
 import { Click, Enter, Navigate } from '@serenity-js/web';
@@ -25,7 +25,8 @@ export const IntentarIniciarSesion = {
       Navigate.to('/login'),
       EsperarQueLaAppEsteLista(),
       Enter.theValue(email).into(Campo(textos.fields.email)),
-      Enter.theValue(password).into(Campo(textos.fields.password)),
+      // Masked: the console and Serenity BDD reports would print it otherwise.
+      Enter.theValue(Masked.valueOf(password)).into(Campo(textos.fields.password)),
       Click.on(Boton(textos.signIn.submit)),
     ),
 };
