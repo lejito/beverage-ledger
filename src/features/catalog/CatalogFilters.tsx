@@ -128,12 +128,15 @@ export function CatalogFilters({
           size="lg"
           onClick={() => setIsAdvancedOpen((open) => !open)}
           aria-expanded={isAdvancedOpen}
+          // The text beside the icon is hidden on phones, where the icon is all there is.
+          aria-label={t('advanced')}
           className={cn(
             'group px-3 sm:px-4',
             state.hasFilters && 'border-accent/50 bg-accent/20 text-accent hover:bg-accent/30',
           )}
         >
           <svg
+            aria-hidden="true"
             className="h-4 w-4 sm:h-5 sm:w-5"
             fill="none"
             stroke="currentColor"
@@ -148,6 +151,7 @@ export function CatalogFilters({
           </svg>
           <span className="hidden sm:inline">{t('advanced')}</span>
           <svg
+            aria-hidden="true"
             className={cn(
               'h-3 w-3 transition-transform duration-base sm:h-4 sm:w-4',
               isAdvancedOpen && 'rotate-180',
