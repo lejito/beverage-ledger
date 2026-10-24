@@ -10,7 +10,7 @@ import { WEB_URL } from '@e2e/support/env';
 import { waitForAuthSlot } from '@e2e/support/throttle';
 
 export const MODEL = (process.env.STAGEHAND_MODEL ??
-  'google/gemini-2.5-flash') as `google/${string}`;
+  'google/gemini-3.8-flash') as `google/${string}`;
 const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
 
 export interface Sesion {

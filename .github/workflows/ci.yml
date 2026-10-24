@@ -307,7 +307,7 @@ jobs:
         if: steps.key.outputs.ready == 'true'
         env:
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
-          STAGEHAND_MODEL: ${{ vars.STAGEHAND_MODEL || 'google/gemini-2.5-flash' }}
+          STAGEHAND_MODEL: ${{ vars.STAGEHAND_MODEL || 'google/gemini-3.8-flash' }}
         run: pnpm test:stagehand
       - name: Guardar el reporte
         if: always() && steps.key.outputs.ready == 'true'

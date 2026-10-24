@@ -59,7 +59,9 @@ describe('IA · cy.prompt sobre RF-01, RF-09 y RF-30', () => {
     cy.navigateInApp('/admin/audit');
     cy.prompt([
       `click the "${messages.admin.audit.entityLabel}" dropdown`,
-      `select the "${messages.admin.audit.entities.product}" option`,
+      // "click", not "select": the model reaches for cy.select(), which only takes a
+      // native <select>, and this one is a Radix listbox.
+      `click the "${messages.admin.audit.entities.product}" option in the open list`,
     ]);
 
     cy.findAllByText(messages.admin.audit.actionNames.product.updated, {
