@@ -36,17 +36,29 @@ function write(budget: Budget): void {
   writeFileSync(BUDGET_FILE, JSON.stringify(budget));
 }
 
+/**
+ * Gemini's free tier allows 15 generate calls a minute, and Stagehand retries a
+ * rejected call at once rather than when the quota says to. An act() may spend
+ * two calls, so six operations a minute stays under the limit.
+ */
+const MODEL_BUDGET = 6;
+
 /** For calls that do not go through a browser, such as Screenplay's CallAnApi. */
 export async function waitForAuthSlot(route: string): Promise<void> {
   return takeSlot(route);
 }
 
-async function takeSlot(route: string): Promise<void> {
+/** Before every Stagehand act(), observe() or extract(). */
+export async function waitForModelSlot(): Promise<void> {
+  return takeSlot('gemini', MODEL_BUDGET);
+}
+
+async function takeSlot(route: string, limit = BUDGET): Promise<void> {
   for (;;) {
     const now = Date.now();
     const budget = read();
     const recent = (budget[route] ?? []).filter((at) => now - at < WINDOW_MS);
-    if (recent.length < BUDGET) {
+    if (recent.length < limit) {
       budget[route] = [...recent, now];
       write(budget);
       return;

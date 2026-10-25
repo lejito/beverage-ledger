@@ -85,7 +85,12 @@ test.describe('Stagehand · RF-01 - Inicio de sesión', () => {
 
     const { data } = await stagehand.extract(
       'extract the visible labels of every link in the main navigation menu',
-      z.object({ enlaces: z.array(z.string()) }),
+      // Described, because a lighter model reads a bare string as an element id.
+      z.object({
+        enlaces: z.array(
+          z.string().describe('the text the link shows on screen, not an element id'),
+        ),
+      }),
     );
     expect(data.enlaces).toContain(messages.nav.items.dashboard);
     expect(data.enlaces).not.toContain(messages.nav.items.admin);

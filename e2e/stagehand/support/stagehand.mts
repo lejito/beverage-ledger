@@ -7,10 +7,12 @@ import {
 import { test, type TestInfo } from '@playwright/test';
 import type { Credentials } from '@e2e/support/env';
 import { WEB_URL } from '@e2e/support/env';
-import { waitForAuthSlot } from '@e2e/support/throttle';
+import { waitForAuthSlot, waitForModelSlot } from '@e2e/support/throttle';
 
+// Flash-Lite: the free tier gives it 500 requests a day, and Flash only 20,
+// fewer than one run of this suite.
 export const MODEL = (process.env.STAGEHAND_MODEL ??
-  'google/gemini-3.8-flash') as `google/${string}`;
+  'google/gemini-3.5-flash-lite') as `google/${string}`;
 const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
 
 export interface Sesion {
@@ -39,7 +41,19 @@ export async function abrir(): Promise<Sesion> {
     logging: { level: 'warn' },
   });
   const [page] = await browser.context.pages();
-  return { browser, stagehand, page: page! };
+  return { browser, stagehand: paced(stagehand), page: page! };
+}
+
+function paced(stagehand: Stagehand): Stagehand {
+  const wait = <T extends (...args: never[]) => Promise<unknown>>(call: T): T =>
+    (async (...args: Parameters<T>) => {
+      await waitForModelSlot();
+      return call(...args);
+    }) as T;
+  stagehand.act = wait(stagehand.act.bind(stagehand));
+  stagehand.observe = wait(stagehand.observe.bind(stagehand));
+  stagehand.extract = wait(stagehand.extract.bind(stagehand));
+  return stagehand;
 }
 
 /** The tokens and inference time each test spent, attached to its report. */
