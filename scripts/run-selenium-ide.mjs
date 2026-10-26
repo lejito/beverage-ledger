@@ -29,17 +29,20 @@ writeFileSync(runnable, project);
 
 const headless = process.env.HEADED ? '' : '--headless=new,';
 // Jenkins has no Google Chrome: CHROME_PATH points at Playwright's Chromium, and
-// Selenium Manager fetches the chromedriver that matches it.
+// Selenium Manager fetches the chromedriver that matches it. That Chromium runs
+// inside the Jenkins container, where it cannot set up its sandbox and aborts:
+// Playwright launches it with --no-sandbox for the same reason.
 const binary = process.env.CHROME_PATH
   ? ` goog:chromeOptions.binary=${process.env.CHROME_PATH}`
   : '';
+const containerArgs = process.env.CHROME_PATH ? '--no-sandbox,--disable-dev-shm-usage,' : '';
 const { status } = spawnSync(
   'selenium-side-runner',
   [
     '--base-url',
     'http://localhost:3000',
     '--capabilities',
-    `browserName=chrome goog:chromeOptions.args=[${headless}--window-size=1280,900,--lang=es-CO]${binary}`,
+    `browserName=chrome goog:chromeOptions.args=[${headless}${containerArgs}--window-size=1280,900,--lang=es-CO]${binary}`,
     '--timeout',
     '30000',
     '--jest-timeout',
