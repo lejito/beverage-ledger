@@ -7,14 +7,19 @@ def ciAccounts() {
   ]
 }
 
-// Cucumber and Cypress do not start the app the way Playwright's webServer does.
-// Served in the same sh step as the suite: Jenkins kills what a step leaves
-// behind, so a server started in a step of its own would be gone by the next.
+// Cucumber, Cypress and Selenium IDE do not start the app the way Playwright's
+// webServer does, so it is served in the same sh step as the suite. In a process
+// group of its own: pnpm runs `next start` as a child, and killing pnpm alone left
+// Next on port 3000, where the next stage's server could not start.
 def withApp(String command) {
   sh """
-    pnpm start > next-start.log 2>&1 &
+    setsid pnpm start > next-start.log 2>&1 &
     app=\$!
-    trap 'kill \$app 2>/dev/null || true' EXIT
+    stop() {
+      kill -- -\$app 2>/dev/null || true
+      timeout 30 sh -c 'while curl -s -o /dev/null http://localhost:3000; do sleep 1; done' || true
+    }
+    trap stop EXIT
     timeout 120 sh -c 'until curl -sf -o /dev/null http://localhost:3000/login; do sleep 2; done'
     ${command}
   """
