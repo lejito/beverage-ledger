@@ -15,6 +15,8 @@ import {
 let inFlight: Promise<Session | null> | null = null;
 
 async function requestRefresh(): Promise<Session | null> {
+  const tokenAtStart = getAccessToken();
+
   try {
     const response = await fetch(`${API_ORIGIN}/api/v1/auth/refresh`, {
       method: 'POST',
@@ -22,7 +24,10 @@ async function requestRefresh(): Promise<Session | null> {
     });
 
     if (!response.ok) {
-      forgetSession();
+      // A sign-in that landed while this was in flight stored a newer session,
+      // and this 401 answers the anonymous visit before it: forgetting would sign
+      // the person straight back out.
+      if (getAccessToken() === tokenAtStart) forgetSession();
       return null;
     }
 

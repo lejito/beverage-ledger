@@ -160,6 +160,26 @@ describe('RF-01 Frontend - Regresión de la sesión', () => {
     expect(getAccessToken()).toBeNull();
   });
 
+  it('Camino 10 - un 401 tardío de la renovación no borra el login que llegó mientras tanto', async () => {
+    // Arrange: la renovación de la visita anónima queda en vuelo.
+    let responder: (valor: Response) => void = () => {};
+    fetchSimulado.mockReturnValue(new Promise<Response>((resolve) => (responder = resolve)));
+    const oyente = vi.fn();
+    const olvidar = onSessionLost(oyente);
+    const renovacion = refreshSession();
+
+    // Act: el login guarda su sesión y después llega el 401 de la visita anónima.
+    storeSession(sesion('jwt-del-login', 900));
+    responder(respuesta(401));
+    const renovada = await renovacion;
+
+    // Assert
+    expect(renovada).toBeNull();
+    expect(getAccessToken()).toBe('jwt-del-login');
+    expect(oyente).not.toHaveBeenCalled();
+    olvidar();
+  });
+
   it('Camino 9 - el token de acceso nunca se persiste en el navegador', () => {
     // Act
     storeSession(sesion('jwt-secreto', 900));

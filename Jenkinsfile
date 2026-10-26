@@ -52,6 +52,9 @@ pipeline {
     NEXT_PUBLIC_API_URL = credentials('next-public-api-url')
     CI = 'true'
     NEXT_TELEMETRY_DISABLED = '1'
+    // One login budget for this job and the API job, on the shared Jenkins
+    // volume: both call the same API, which counts them against one limit.
+    AUTH_BUDGET_FILE = '/var/jenkins_home/.cache/beverage-ledger/auth-throttle.json'
   }
 
   stages {

@@ -8,18 +8,16 @@ import type { BrowserContext } from '@playwright/test';
  * refresh and the public invitation routes, and every full page load of the app
  * renews the session through /auth/refresh. Requests to those routes wait for a
  * slot here, one under the limit, so a suite never fails on a 429 it caused.
- * Same budget as the API repository's suites; Jenkins never runs both at once.
+ * Same budget and keys as the API repository's suites: AUTH_BUDGET_FILE points
+ * both at one file when a CI runs them at once, since the API counts both
+ * against the same limit.
  */
 const THROTTLED = /\/api\/v1\/(auth\/(login|refresh)|invitations\/(lookup|accept))$/;
 const BUDGET = 9;
 const WINDOW_MS = 62_000;
-const BUDGET_FILE = join(
-  process.cwd(),
-  'node_modules',
-  '.cache',
-  'beverage-ledger',
-  'auth-throttle.json',
-);
+const BUDGET_FILE =
+  process.env.AUTH_BUDGET_FILE ||
+  join(process.cwd(), 'node_modules', '.cache', 'beverage-ledger', 'auth-throttle.json');
 
 type Budget = Record<string, number[]>;
 
