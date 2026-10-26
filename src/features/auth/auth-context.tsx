@@ -11,6 +11,7 @@ import {
   forgetSession,
   onSessionLost,
   refreshSession,
+  settleRefresh,
   storeSession,
   unwrap,
   type CurrentSession,
@@ -115,6 +116,9 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     isLeavingDeliberately = true;
 
     try {
+      // A renewal still in flight rotates the refresh cookie: logging out first
+      // would revoke the old one, and the new one would bring the session back.
+      await settleRefresh();
       assertOk(await api.POST('/api/v1/auth/logout'));
     } finally {
       // Even a failed logout ends the session on this device: the token stays

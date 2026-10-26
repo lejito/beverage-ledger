@@ -49,6 +49,11 @@ export function refreshSession(): Promise<Session | null> {
   return inFlight;
 }
 
+/** Resolves once no renewal is in flight; it never rejects. */
+export async function settleRefresh(): Promise<void> {
+  await inFlight;
+}
+
 /** Returns a usable token, renewing it first when it is missing or stale. */
 export async function ensureAccessToken(): Promise<string | null> {
   if (hasFreshAccessToken()) return getAccessToken();

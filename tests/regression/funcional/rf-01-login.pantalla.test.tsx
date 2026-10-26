@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { Providers } from '@/app/providers';
 import { ROUTES } from '@/config/navigation';
 import { LoginForm } from '@/features/auth/AuthForm';
+import { useAuth } from '@/features/auth/auth-context';
+import { storeSession, type Session } from '@/lib/api/session';
 import { apiError, fakeApi, json } from '@tests/support/fake-api';
 import { location, router } from '@tests/support/navigation';
 import { messages, PERMISSIONS, renderScreen, SIGNED_IN_USER } from '@tests/support/render-screen';
@@ -91,10 +93,15 @@ describe('RF-01 - Pantalla de inicio de sesión', () => {
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith(ROUTES.dashboard));
   });
+
   it('Caso 6 - el login entra aunque la comprobación de la visita anónima siga en vuelo', async () => {
     // La renovación que lanza la carga de la página nunca responde: en producción,
     // la API tarda al despertar o la respuesta llega tarde con un 429.
-    fakeApi.on('POST /api/v1/auth/refresh', () => new Promise<Response>(() => {}));
+    let soltar: (valor: Response) => void = () => {};
+    fakeApi.on(
+      'POST /api/v1/auth/refresh',
+      () => new Promise<Response>((resolve) => (soltar = resolve)),
+    );
     fakeApi.on(
       'POST /api/v1/auth/login',
       json(200, {
@@ -131,5 +138,44 @@ describe('RF-01 - Pantalla de inicio de sesión', () => {
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith(ROUTES.dashboard));
     expect(fakeApi.callsTo('GET /api/v1/auth/me')).toHaveLength(1);
+    // La renovación en vuelo es estado del módulo: sin soltarla, la del caso
+    // siguiente se uniría a ella.
+    soltar(apiError(401, 'Unauthorized'));
+  });
+
+  it('Caso 7 - salir espera la renovación en vuelo, para revocar la cookie que quede vigente', async () => {
+    // Una renovación que sale tarde puede rotar la cookie de refresh después del
+    // logout, y la sesión volvería en la siguiente carga.
+    let responder: (valor: Response) => void = () => {};
+    fakeApi.on(
+      'POST /api/v1/auth/refresh',
+      () => new Promise<Response>((resolve) => (responder = resolve)),
+    );
+    fakeApi.on('POST /api/v1/auth/logout', new Response(null, { status: 204 }));
+    const Salir = () => {
+      const { signOut } = useAuth();
+      return (
+        <button type="button" onClick={() => void signOut()}>
+          Salir
+        </button>
+      );
+    };
+    render(
+      <NextIntlClientProvider locale="es" messages={messages} timeZone="America/Bogota">
+        <Providers>
+          <Salir />
+        </Providers>
+      </NextIntlClientProvider>,
+    );
+
+    // Ya entró: su token está vigente mientras la renovación de la carga sigue en vuelo.
+    storeSession({ accessToken: 'jwt-del-login', expiresIn: 900 } as Session);
+    fireEvent.click(screen.getByRole('button', { name: 'Salir' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fakeApi.callsTo('POST /api/v1/auth/logout')).toHaveLength(0);
+
+    responder(json(200, { accessToken: 'jwt-rotado', expiresIn: 900 }));
+    await waitFor(() => expect(fakeApi.callsTo('POST /api/v1/auth/logout')).toHaveLength(1));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(ROUTES.signIn));
   });
 });

@@ -1,6 +1,6 @@
 export { api, assertOk, unwrap } from './client';
 export { ApiError, describeError, isApiError, isUnauthorized, type ApiErrorBody } from './errors';
-export { ensureAccessToken, refreshSession } from './refresh';
+export { ensureAccessToken, refreshSession, settleRefresh } from './refresh';
 export {
   forgetSession,
   getAccessToken,
