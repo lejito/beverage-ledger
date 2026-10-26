@@ -36,6 +36,8 @@ pipeline {
 
   options {
     timestamps()
+    // Keploy, Vitest, Cypress and pnpm colour their output; this turns the codes into colour.
+    ansiColor('xterm')
     // The browser suites pace their logins to the API's rate limit, which is
     // most of their running time.
     timeout(time: 90, unit: 'MINUTES')
