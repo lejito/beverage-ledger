@@ -20,7 +20,7 @@
           "id": "00000000-0000-4000-8000-000000000002",
           "comment": "",
           "command": "executeAsyncScript",
-          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router ? resolve(true) : setTimeout(poll, 100)); poll(); })",
+          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router && Array.from(document.forms).every((f) => Object.keys(f).some((k) => k.startsWith('__reactProps'))) ? resolve(true) : setTimeout(poll, 100)); poll(); })",
           "targets": [],
           "value": ""
         },
@@ -98,7 +98,7 @@
           "id": "00000000-0000-4000-8000-000000000011",
           "comment": "",
           "command": "executeAsyncScript",
-          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router ? resolve(true) : setTimeout(poll, 100)); poll(); })",
+          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router && Array.from(document.forms).every((f) => Object.keys(f).some((k) => k.startsWith('__reactProps'))) ? resolve(true) : setTimeout(poll, 100)); poll(); })",
           "targets": [],
           "value": ""
         },
@@ -168,7 +168,7 @@
           "id": "00000000-0000-4000-8000-000000000019",
           "comment": "",
           "command": "executeAsyncScript",
-          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router ? resolve(true) : setTimeout(poll, 100)); poll(); })",
+          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router && Array.from(document.forms).every((f) => Object.keys(f).some((k) => k.startsWith('__reactProps'))) ? resolve(true) : setTimeout(poll, 100)); poll(); })",
           "targets": [],
           "value": ""
         },
@@ -238,7 +238,7 @@
           "id": "00000000-0000-4000-8000-000000000027",
           "comment": "",
           "command": "executeAsyncScript",
-          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router ? resolve(true) : setTimeout(poll, 100)); poll(); })",
+          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router && Array.from(document.forms).every((f) => Object.keys(f).some((k) => k.startsWith('__reactProps'))) ? resolve(true) : setTimeout(poll, 100)); poll(); })",
           "targets": [],
           "value": ""
         },
@@ -332,7 +332,7 @@
           "id": "00000000-0000-4000-8000-000000000038",
           "comment": "",
           "command": "executeAsyncScript",
-          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router ? resolve(true) : setTimeout(poll, 100)); poll(); })",
+          "target": "return new Promise((resolve) => { const poll = () => (window.next && window.next.router && Array.from(document.forms).every((f) => Object.keys(f).some((k) => k.startsWith('__reactProps'))) ? resolve(true) : setTimeout(poll, 100)); poll(); })",
           "targets": [],
           "value": ""
         },

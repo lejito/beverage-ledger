@@ -4,7 +4,7 @@
 // into a copy under reports/selenium, which is gitignored.
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
 
@@ -26,6 +26,34 @@ if (missing.size > 0) {
 mkdirSync(join(OUTPUT, 'screenshots'), { recursive: true });
 const runnable = join(OUTPUT, 'beverage-ledger.side');
 writeFileSync(runnable, project);
+
+// The recorded steps cannot wait for a login slot the way the other suites do
+// (e2e/support/throttle.ts), and starting right after one of them answered 429.
+// So it waits until the shared budget has been idle for a whole window, then
+// claims all of it: its five sign-ins fit in what the API allows in a minute.
+const BUDGET_FILE =
+  process.env.AUTH_BUDGET_FILE ||
+  join('node_modules', '.cache', 'beverage-ledger', 'auth-throttle.json');
+const THROTTLED = ['/api/v1/auth/login', '/api/v1/auth/refresh'];
+const WINDOW_MS = 62_000;
+const BUDGET = 9;
+for (;;) {
+  let budget = {};
+  try {
+    budget = JSON.parse(readFileSync(BUDGET_FILE, 'utf8'));
+  } catch {
+    // No budget file yet: nothing has signed in recently.
+  }
+  const now = Date.now();
+  const last = Math.max(0, ...THROTTLED.flatMap((route) => budget[route] ?? []));
+  if (now - last >= WINDOW_MS) {
+    for (const route of THROTTLED) budget[route] = Array.from({ length: BUDGET }, () => now);
+    mkdirSync(dirname(BUDGET_FILE), { recursive: true });
+    writeFileSync(BUDGET_FILE, JSON.stringify(budget));
+    break;
+  }
+  await new Promise((resolve) => setTimeout(resolve, WINDOW_MS - (now - last) + 250));
+}
 
 const headless = process.env.HEADED ? '' : '--headless=new,';
 // Jenkins has no Google Chrome: CHROME_PATH points at Playwright's Chromium, and

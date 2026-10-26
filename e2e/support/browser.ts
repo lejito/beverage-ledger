@@ -28,13 +28,18 @@ interface NextWindow {
 }
 
 /**
- * Next prerenders the page and React takes over the inputs a moment later: text
- * typed before that is wiped when the controlled inputs hydrate. The app router
- * appears on `window.next` once hydration is done.
+ * Next prerenders the page and React takes over a moment later. The router on
+ * `window.next` is not enough: a form inside a Suspense boundary hydrates after
+ * it, and a click before that submits the bare HTML form, which reloads the
+ * page empty. React tags every node it has hydrated with a `__reactProps$` key.
  */
 export async function waitForHydration(page: Page): Promise<void> {
-  await page.waitForFunction(() =>
-    Boolean((window as unknown as Partial<NextWindow>).next?.router),
+  await page.waitForFunction(
+    () =>
+      Boolean((window as unknown as Partial<NextWindow>).next?.router) &&
+      Array.from(document.forms).every((form) =>
+        Object.keys(form).some((key) => key.startsWith('__reactProps')),
+      ),
   );
 }
 

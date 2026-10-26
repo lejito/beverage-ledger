@@ -75,8 +75,14 @@ export async function cerrar(sesion: Sesion | undefined, info: TestInfo): Promis
 export async function cargar(page: Page, ruta: string): Promise<void> {
   await waitForAuthSlot('/api/v1/auth/refresh');
   await page.goto(`${WEB_URL}${ruta}`);
-  await page.waitForFunction(() =>
-    Boolean((window as unknown as { next?: { router?: unknown } }).next?.router),
+  // The same check as waitForHydration in e2e/support/browser.ts, which this
+  // ESM-only suite cannot import: the router and every form hydrated.
+  await page.waitForFunction(
+    () =>
+      Boolean((window as unknown as { next?: { router?: unknown } }).next?.router) &&
+      Array.from(document.forms).every((form) =>
+        Object.keys(form).some((key) => key.startsWith('__reactProps')),
+      ),
   );
 }
 
