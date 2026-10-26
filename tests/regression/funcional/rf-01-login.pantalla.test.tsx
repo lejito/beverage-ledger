@@ -1,10 +1,12 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it } from 'vitest';
+import { Providers } from '@/app/providers';
 import { ROUTES } from '@/config/navigation';
 import { LoginForm } from '@/features/auth/AuthForm';
 import { apiError, fakeApi, json } from '@tests/support/fake-api';
 import { location, router } from '@tests/support/navigation';
-import { messages, renderScreen, SIGNED_IN_USER } from '@tests/support/render-screen';
+import { messages, PERMISSIONS, renderScreen, SIGNED_IN_USER } from '@tests/support/render-screen';
 
 const textos = messages.auth;
 const validacion = messages.common.validation;
@@ -88,5 +90,46 @@ describe('RF-01 - Pantalla de inicio de sesión', () => {
     entrar();
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith(ROUTES.dashboard));
+  });
+  it('Caso 6 - el login entra aunque la comprobación de la visita anónima siga en vuelo', async () => {
+    // La renovación que lanza la carga de la página nunca responde: en producción,
+    // la API tarda al despertar o la respuesta llega tarde con un 429.
+    fakeApi.on('POST /api/v1/auth/refresh', () => new Promise<Response>(() => {}));
+    fakeApi.on(
+      'POST /api/v1/auth/login',
+      json(200, {
+        accessToken: 'jwt-del-login',
+        expiresIn: 900,
+        user: { ...SIGNED_IN_USER, role: 'ORG_ADMIN' },
+      }),
+    );
+    fakeApi.on(
+      'GET /api/v1/auth/me',
+      json(200, {
+        user: { ...SIGNED_IN_USER, role: 'ORG_ADMIN' },
+        organization: {
+          id: 'org',
+          name: 'Bar de pruebas',
+          slug: 'demo',
+          logoUrl: null,
+          timezone: 'America/Bogota',
+        },
+        permissions: PERMISSIONS.ORG_ADMIN,
+      }),
+    );
+    render(
+      <NextIntlClientProvider locale="es" messages={messages} timeZone="America/Bogota">
+        <Providers>
+          <LoginForm />
+        </Providers>
+      </NextIntlClientProvider>,
+    );
+
+    escribir(textos.fields.email, SIGNED_IN_USER.email);
+    escribir(textos.fields.password, 'Correcta-2026');
+    entrar();
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(ROUTES.dashboard));
+    expect(fakeApi.callsTo('GET /api/v1/auth/me')).toHaveLength(1);
   });
 });

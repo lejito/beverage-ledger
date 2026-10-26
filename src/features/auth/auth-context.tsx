@@ -101,7 +101,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     mutationFn: async (credentials: Credentials) => {
       storeSession(unwrap(await api.POST('/api/v1/auth/login', { body: credentials })));
       isLeavingDeliberately = false;
-      await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+      // The page load's check for a returning visitor may still be in flight, and
+      // without data yet a refetch waits on it instead of replacing it: a slow or
+      // failed answer about the anonymous visit would then decide this sign-in.
+      await queryClient.cancelQueries({ queryKey: sessionQueryKey });
+      await queryClient.refetchQueries({ queryKey: sessionQueryKey });
     },
   }).mutateAsync;
 
